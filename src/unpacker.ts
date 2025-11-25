@@ -2,7 +2,7 @@ import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseStringPromise } from 'xml2js';
-import { UnpackOptions, IMSCCManifest } from './types';
+import { UnpackOptions } from './types';
 
 export class IMSCCUnpacker {
   private options: UnpackOptions;
@@ -52,17 +52,31 @@ export class IMSCCUnpacker {
 
     try {
       const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
-      const manifest = await parseStringPromise(manifestContent) as { manifest?: IMSCCManifest };
+      const parsed = await parseStringPromise(manifestContent);
 
       this.log('Manifest parsed successfully');
 
       // Create metadata summary
       const metadataPath = path.join(this.options.outputDir, 'metadata.json');
+      
+      // xml2js parses values as arrays
+      const getTextValue = (val: unknown): string => {
+        if (Array.isArray(val) && val.length > 0) {
+          return String(val[0]);
+        }
+        return val ? String(val) : 'Unknown';
+      };
+      
+      const manifest = parsed.manifest || {};
+      const metadataObj = Array.isArray(manifest.metadata) ? manifest.metadata[0] : manifest.metadata;
+      const resourcesObj = Array.isArray(manifest.resources) ? manifest.resources[0] : manifest.resources;
+      const orgsObj = Array.isArray(manifest.organizations) ? manifest.organizations[0] : manifest.organizations;
+      
       const metadata = {
-        schema: manifest.manifest?.metadata?.schema || 'Unknown',
-        schemaVersion: manifest.manifest?.metadata?.schemaversion || 'Unknown',
-        resourceCount: manifest.manifest?.resources?.resource?.length || 0,
-        organizationCount: manifest.manifest?.organizations?.organization?.length || 0,
+        schema: metadataObj ? getTextValue(metadataObj.schema) : 'Unknown',
+        schemaVersion: metadataObj ? getTextValue(metadataObj.schemaversion) : 'Unknown',
+        resourceCount: resourcesObj?.resource?.length || 0,
+        organizationCount: orgsObj?.organization?.length || 0,
         extractedAt: new Date().toISOString(),
       };
 

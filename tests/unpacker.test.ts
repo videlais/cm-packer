@@ -1,4 +1,4 @@
-import { IMSCCUnpacker } from '../unpacker';
+import { IMSCCUnpacker } from '../src/unpacker';
 import * as fs from 'fs';
 import AdmZip from 'adm-zip';
 

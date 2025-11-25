@@ -1,4 +1,4 @@
-import { IMSCCPacker } from '../packer';
+import { IMSCCPacker } from '../src/packer';
 import * as fs from 'fs';
 import AdmZip from 'adm-zip';
 

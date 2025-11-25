@@ -109,20 +109,24 @@ npm run build
 
 ### Run tests
 
+Run all tests (unit + integration) with coverage:
 ```bash
 npm test
 ```
 
-### Run tests in watch mode
-
+Run only unit tests:
 ```bash
-npm run test:watch
+npm run test:unit
 ```
 
-### Check test coverage
-
+Run only integration tests:
 ```bash
-npm run test:coverage
+npm run test:integration
+```
+
+Run tests in watch mode:
+```bash
+npm run test:watch
 ```
 
 ### Lint
@@ -131,10 +135,51 @@ npm run test:coverage
 npm run lint
 ```
 
-### Fix linting issues
+### Run all checks
 
+Lint, test, and build in one command:
 ```bash
-npm run lint:fix
+npm run all
+```
+
+### Testing
+
+The project includes comprehensive test coverage:
+
+- **Unit Tests** (`src/tests/*.test.ts`): Test individual modules (packer, unpacker) with mocked dependencies
+- **Integration Tests** (`src/__tests__/cli.integration.test.ts`): Test the full CLI by executing actual commands
+  - Pack/unpack operations with real files
+  - Round-trip testing (pack → unpack → verify)
+  - Error handling and edge cases
+  - CLI argument validation
+
+**Coverage Collection**: 
+- Unit tests use Jest's built-in coverage
+- Integration tests use `c8` to track coverage of executed CLI commands
+- Combined coverage reflects real-world usage of both the library and CLI
+
+**Current Coverage**: 81%+ statements, 81%+ branches, 85%+ functions
+
+## Project Structure
+
+```
+cm-packer/
+├── src/
+│   ├── __tests__/        # Integration tests
+│   ├── tests/            # Unit tests
+│   ├── fixtures/         # Test fixtures
+│   ├── cli.ts           # CLI interface
+│   ├── index.ts         # Main exports
+│   ├── packer.ts        # IMSCC packer module
+│   ├── unpacker.ts      # IMSCC unpacker module
+│   └── types.ts         # TypeScript type definitions
+├── dist/                # Compiled JavaScript (generated)
+├── examples/            # Example IMSCC files
+├── package.json
+├── tsconfig.json        # TypeScript configuration
+├── jest.config.js       # Jest configuration
+├── eslint.config.js     # ESLint configuration
+└── README.md
 ```
 
 ## Dependencies

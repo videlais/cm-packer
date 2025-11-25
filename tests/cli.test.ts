@@ -1,9 +1,9 @@
-import { IMSCCPacker } from '../packer';
-import { IMSCCUnpacker } from '../unpacker';
+import { IMSCCPacker } from '../src/packer';
+import { IMSCCUnpacker } from '../src/unpacker';
 
 // Mock the modules
-jest.mock('../packer');
-jest.mock('../unpacker');
+jest.mock('../src/packer');
+jest.mock('../src/unpacker');
 
 describe('CLI Commands', () => {
   let mockExit: jest.SpyInstance;

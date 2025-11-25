@@ -1,8 +1,9 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  roots: ['<rootDir>/tests'],
+  testMatch: ['**/?(*.)+(spec|test).ts'],
+  testTimeout: 30000, // Integration tests may take longer
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
