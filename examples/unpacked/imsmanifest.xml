@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="cm-packer-1764107639093" xmlns="http://www.imsglobal.org/xsd/imsccv1p3/imscp_v1p1" xmlns:lom="http://ltsc.ieee.org/xsd/imsccv1p3/LOM/resource" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsccv1p3/imscp_v1p1 http://www.imsglobal.org/profile/cc/ccv1p3/ccv1p3_imscp_v1p2_v1p0.xsd">
+  <metadata>
+    <schema>IMS Common Cartridge</schema>
+    <schemaversion>1.4.0</schemaversion>
+  </metadata>
+  <organizations>
+    <organization identifier="org-1" structure="rooted-hierarchy"/>
+  </organizations>
+  <resources>
+    <resource identifier="resource-1" type="webcontent" href="module1.html">
+      <file href="module1.html"/>
+    </resource>
+    <resource identifier="resource-2" type="webcontent" href="module2.html">
+      <file href="module2.html"/>
+    </resource>
+  </resources>
+</manifest>
