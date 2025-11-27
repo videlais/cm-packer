@@ -51,3 +51,10 @@ export interface PackOptions {
   outputFile: string;
   verbose?: boolean;
 }
+
+export interface RemapOptions {
+  inputDir?: string;
+  inputFile?: string;
+  outputDir: string;
+  verbose?: boolean;
+}

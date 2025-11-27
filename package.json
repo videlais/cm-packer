@@ -1,6 +1,6 @@
 {
   "name": "cm-packer",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Command-line tool for packing and unpacking IMSCC files (Common Cartridge 1.4)",
   "main": "dist/index.js",
   "bin": {

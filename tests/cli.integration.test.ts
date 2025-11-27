@@ -422,4 +422,413 @@ describe('CLI Integration Tests', () => {
       }).toThrow();
     });
   });
+
+  describe('remap command', () => {
+    it('should remap unpacked IMSCC directory', () => {
+      const unpackDir = path.join(TEST_DIR, 'remap-unpack');
+      const remapDir = path.join(TEST_DIR, 'remap-output');
+      const imsccFile = path.join(TEST_DIR, 'remap-test.imscc');
+
+      // Create test IMSCC file
+      const zip = new AdmZip();
+      
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+          xmlns:lom="http://ltsc.ieee.org/xsd/imsccv1p1/LOM/resource"
+          xmlns:lomimscc="http://ltsc.ieee.org/xsd/imsccv1p1/LOM/manifest"
+          identifier="manifest-1">
+  <metadata>
+    <schema>IMS Common Cartridge</schema>
+    <schemaversion>1.1.0</schemaversion>
+  </metadata>
+  <organizations>
+    <organization identifier="org1" structure="rooted-hierarchy">
+      <item identifier="module1">
+        <title>Week 1</title>
+        <item identifier="lesson1" identifierref="res1">
+          <title>Introduction</title>
+        </item>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="res1" type="webcontent" href="intro.html">
+      <file href="intro.html"/>
+    </resource>
+  </resources>
+</manifest>`;
+
+      zip.addFile('imsmanifest.xml', Buffer.from(manifest, 'utf-8'));
+      zip.addFile('intro.html', Buffer.from('<html><body><h1>Introduction</h1></body></html>', 'utf-8'));
+      zip.writeZip(imsccFile);
+
+      // Unpack first
+      execSync(
+        `node "${CLI_PATH}" unpack -i "${imsccFile}" -o "${unpackDir}"`,
+        { encoding: 'utf-8' }
+      );
+
+      // Remap
+      const result = execSync(
+        `node "${CLI_PATH}" remap -i "${unpackDir}" -o "${remapDir}"`,
+        { encoding: 'utf-8' }
+      );
+
+      expect(result).toContain('Successfully remapped');
+      expect(fs.existsSync(remapDir)).toBe(true);
+      expect(fs.existsSync(path.join(remapDir, 'imsmanifest.xml'))).toBe(true);
+    });
+
+    it('should remap directly from IMSCC file', () => {
+      const remapDir = path.join(TEST_DIR, 'remap-direct');
+      const imsccFile = path.join(TEST_DIR, 'remap-direct-test.imscc');
+
+      // Create test IMSCC file
+      const zip = new AdmZip();
+      
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+          identifier="manifest-1">
+  <metadata>
+    <schema>IMS Common Cartridge</schema>
+    <schemaversion>1.1.0</schemaversion>
+  </metadata>
+  <organizations>
+    <organization identifier="org1" structure="rooted-hierarchy">
+      <item identifier="module1">
+        <title>Module One</title>
+        <item identifier="lesson1" identifierref="res1">
+          <title>Lesson One</title>
+        </item>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="res1" type="webcontent" href="lesson.html">
+      <file href="lesson.html"/>
+    </resource>
+  </resources>
+</manifest>`;
+
+      zip.addFile('imsmanifest.xml', Buffer.from(manifest, 'utf-8'));
+      zip.addFile('lesson.html', Buffer.from('<html><body><h1>Lesson Content</h1></body></html>', 'utf-8'));
+      zip.writeZip(imsccFile);
+
+      // Remap directly from IMSCC file
+      const result = execSync(
+        `node "${CLI_PATH}" remap -f "${imsccFile}" -o "${remapDir}"`,
+        { encoding: 'utf-8' }
+      );
+
+      expect(result).toContain('Successfully remapped');
+      expect(fs.existsSync(remapDir)).toBe(true);
+      expect(fs.existsSync(path.join(remapDir, 'imsmanifest.xml'))).toBe(true);
+      expect(fs.existsSync(path.join(remapDir, 'Module One'))).toBe(true);
+    });
+
+    it('should fail when neither input nor file is provided', () => {
+      const remapDir = path.join(TEST_DIR, 'remap-error');
+
+      expect(() => {
+        execSync(
+          `node "${CLI_PATH}" remap -o "${remapDir}"`,
+          { encoding: 'utf-8', stdio: 'pipe' }
+        );
+      }).toThrow();
+    });
+
+    it('should fail when both input and file are provided', () => {
+      const unpackDir = path.join(TEST_DIR, 'remap-both');
+      const imsccFile = path.join(TEST_DIR, 'test.imscc');
+      const remapDir = path.join(TEST_DIR, 'remap-both-output');
+
+      expect(() => {
+        execSync(
+          `node "${CLI_PATH}" remap -i "${unpackDir}" -f "${imsccFile}" -o "${remapDir}"`,
+          { encoding: 'utf-8', stdio: 'pipe' }
+        );
+      }).toThrow();
+    });
+
+    it('should remap with verbose output', () => {
+      const remapDir = path.join(TEST_DIR, 'remap-verbose');
+      const imsccFile = path.join(TEST_DIR, 'remap-verbose-test.imscc');
+
+      // Create test IMSCC file
+      const zip = new AdmZip();
+      
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+          identifier="manifest-1">
+  <metadata>
+    <schema>IMS Common Cartridge</schema>
+    <schemaversion>1.1.0</schemaversion>
+  </metadata>
+  <organizations>
+    <organization identifier="org1" structure="rooted-hierarchy">
+      <item identifier="item1" identifierref="res1">
+        <title>Test Item</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="res1" type="webcontent" href="test.html">
+      <file href="test.html"/>
+    </resource>
+  </resources>
+</manifest>`;
+
+      zip.addFile('imsmanifest.xml', Buffer.from(manifest, 'utf-8'));
+      zip.addFile('test.html', Buffer.from('<html><body>Test</body></html>', 'utf-8'));
+      zip.writeZip(imsccFile);
+
+      // Remap with verbose flag
+      const result = execSync(
+        `node "${CLI_PATH}" remap -f "${imsccFile}" -o "${remapDir}" --verbose`,
+        { encoding: 'utf-8' }
+      );
+
+      expect(result).toContain('Unpacking IMSCC file');
+      expect(result).toContain('Parsing manifest');
+      expect(result).toContain('Building course structure');
+      expect(result).toContain('Successfully remapped');
+    });
+
+    it('should show help for remap command', () => {
+      const result = execSync(`node "${CLI_PATH}" remap --help`, { encoding: 'utf-8' });
+      
+      expect(result).toContain('Remap unpacked IMSCC directory');
+      expect(result).toContain('--input');
+      expect(result).toContain('--file');
+      expect(result).toContain('--output');
+      expect(result).toContain('--verbose');
+    });
+
+    it('should handle wiki content integration', () => {
+      const remapDir = path.join(TEST_DIR, 'remap-wiki');
+      const imsccFile = path.join(TEST_DIR, 'remap-wiki-test.imscc');
+
+      const zip = new AdmZip();
+      
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+          identifier="manifest-1">
+  <organizations>
+    <organization identifier="org1">
+      <item identifier="module1">
+        <title>Week 1</title>
+        <item identifier="wiki1" identifierref="wikiref1">
+          <title>Wiki Page Title</title>
+        </item>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="wikiref1" type="webcontent" href="wiki_content/test-wiki.html">
+      <file href="wiki_content/test-wiki.html"/>
+    </resource>
+  </resources>
+</manifest>`;
+
+      zip.addFile('imsmanifest.xml', Buffer.from(manifest, 'utf-8'));
+      zip.addFile('wiki_content/test-wiki.html', Buffer.from('<html><body>Wiki content</body></html>', 'utf-8'));
+      zip.writeZip(imsccFile);
+
+      execSync(
+        `node "${CLI_PATH}" remap -f "${imsccFile}" -o "${remapDir}"`,
+        { encoding: 'utf-8' }
+      );
+
+      expect(fs.existsSync(path.join(remapDir, 'Week 1'))).toBe(true);
+      expect(fs.existsSync(path.join(remapDir, 'Week 1', 'Wiki Page Title.html'))).toBe(true);
+    });
+
+    it('should handle nested directory structures', () => {
+      const remapDir = path.join(TEST_DIR, 'remap-nested');
+      const imsccFile = path.join(TEST_DIR, 'remap-nested-test.imscc');
+
+      const zip = new AdmZip();
+      
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+          identifier="manifest-1">
+  <organizations>
+    <organization identifier="org1">
+      <item identifier="mod1">
+        <title>Module 1</title>
+        <item identifier="submod1">
+          <title>Submodule 1</title>
+          <item identifier="lesson1" identifierref="res1">
+            <title>Deep Lesson</title>
+          </item>
+        </item>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="res1" type="webcontent" href="lesson.html">
+      <file href="lesson.html"/>
+    </resource>
+  </resources>
+</manifest>`;
+
+      zip.addFile('imsmanifest.xml', Buffer.from(manifest, 'utf-8'));
+      zip.addFile('lesson.html', Buffer.from('<html><body>Lesson</body></html>', 'utf-8'));
+      zip.writeZip(imsccFile);
+
+      execSync(
+        `node "${CLI_PATH}" remap -f "${imsccFile}" -o "${remapDir}"`,
+        { encoding: 'utf-8' }
+      );
+
+      // Check nested structure was created
+      expect(fs.existsSync(path.join(remapDir, 'Module 1'))).toBe(true);
+      expect(fs.existsSync(path.join(remapDir, 'Module 1', 'Submodule 1'))).toBe(true);
+    });
+
+    it('should handle special directories', () => {
+      const remapDir = path.join(TEST_DIR, 'remap-special');
+      const imsccFile = path.join(TEST_DIR, 'remap-special-test.imscc');
+
+      const zip = new AdmZip();
+      
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+          identifier="manifest-1">
+  <organizations>
+    <organization identifier="org1"/>
+  </organizations>
+</manifest>`;
+
+      zip.addFile('imsmanifest.xml', Buffer.from(manifest, 'utf-8'));
+      zip.addFile('course_settings/settings.xml', Buffer.from('<settings/>', 'utf-8'));
+      zip.addFile('web_resources/style.css', Buffer.from('body {}', 'utf-8'));
+      zip.addFile('non_cc_assessments/quiz.xml', Buffer.from('<quiz/>', 'utf-8'));
+      zip.writeZip(imsccFile);
+
+      execSync(
+        `node "${CLI_PATH}" remap -f "${imsccFile}" -o "${remapDir}"`,
+        { encoding: 'utf-8' }
+      );
+
+      expect(fs.existsSync(path.join(remapDir, 'course_settings', 'settings.xml'))).toBe(true);
+      expect(fs.existsSync(path.join(remapDir, 'web_resources', 'style.css'))).toBe(true);
+      expect(fs.existsSync(path.join(remapDir, 'non_cc_assessments', 'quiz.xml'))).toBe(true);
+    });
+
+    it('should handle resources with directories', () => {
+      const remapDir = path.join(TEST_DIR, 'remap-resource-dir');
+      const imsccFile = path.join(TEST_DIR, 'remap-resource-dir-test.imscc');
+
+      const zip = new AdmZip();
+      
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+          identifier="manifest-1">
+  <organizations>
+    <organization identifier="org1">
+      <item identifier="item1" identifierref="resdir1">
+        <title>Assignment 1</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="resdir1" type="associatedcontent">
+      <file href="resdir1/file1.html"/>
+      <file href="resdir1/file2.html"/>
+    </resource>
+  </resources>
+</manifest>`;
+
+      zip.addFile('imsmanifest.xml', Buffer.from(manifest, 'utf-8'));
+      zip.addFile('resdir1/file1.html', Buffer.from('<html>File 1</html>', 'utf-8'));
+      zip.addFile('resdir1/file2.html', Buffer.from('<html>File 2</html>', 'utf-8'));
+      zip.writeZip(imsccFile);
+
+      execSync(
+        `node "${CLI_PATH}" remap -f "${imsccFile}" -o "${remapDir}"`,
+        { encoding: 'utf-8' }
+      );
+
+      expect(fs.existsSync(remapDir)).toBe(true);
+    });
+
+    it('should handle XML resources without wiki references', () => {
+      const remapDir = path.join(TEST_DIR, 'remap-xml');
+      const imsccFile = path.join(TEST_DIR, 'remap-xml-test.imscc');
+
+      const zip = new AdmZip();
+      
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+          identifier="manifest-1">
+  <organizations>
+    <organization identifier="org1">
+      <item identifier="item1" identifierref="res1">
+        <title>External Link</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="res1" type="imswl_xmlv1p1" href="res1.xml">
+      <file href="res1.xml"/>
+    </resource>
+  </resources>
+</manifest>`;
+
+      const xmlContent = `<?xml version="1.0"?>
+<webLink xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imswl_v1p1">
+  <title>External Link</title>
+  <url>https://example.com</url>
+</webLink>`;
+
+      zip.addFile('imsmanifest.xml', Buffer.from(manifest, 'utf-8'));
+      zip.addFile('res1.xml', Buffer.from(xmlContent, 'utf-8'));
+      zip.writeZip(imsccFile);
+
+      execSync(
+        `node "${CLI_PATH}" remap -f "${imsccFile}" -o "${remapDir}"`,
+        { encoding: 'utf-8' }
+      );
+
+      expect(fs.existsSync(path.join(remapDir, 'External Link.xml'))).toBe(true);
+    });
+
+    it('should sanitize filenames with invalid characters', () => {
+      const remapDir = path.join(TEST_DIR, 'remap-sanitize');
+      const imsccFile = path.join(TEST_DIR, 'remap-sanitize-test.imscc');
+
+      const zip = new AdmZip();
+      
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+          identifier="manifest-1">
+  <organizations>
+    <organization identifier="org1">
+      <item identifier="item1" identifierref="res1">
+        <title>File: Name/With\\Invalid|Characters?</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="res1" type="webcontent" href="test.html">
+      <file href="test.html"/>
+    </resource>
+  </resources>
+</manifest>`;
+
+      zip.addFile('imsmanifest.xml', Buffer.from(manifest, 'utf-8'));
+      zip.addFile('test.html', Buffer.from('<html>Test</html>', 'utf-8'));
+      zip.writeZip(imsccFile);
+
+      execSync(
+        `node "${CLI_PATH}" remap -f "${imsccFile}" -o "${remapDir}"`,
+        { encoding: 'utf-8' }
+      );
+
+      // Should successfully remap despite invalid characters in title
+      expect(fs.existsSync(remapDir)).toBe(true);
+      expect(fs.existsSync(path.join(remapDir, 'imsmanifest.xml'))).toBe(true);
+    });
+  });
 });

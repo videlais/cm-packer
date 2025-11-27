@@ -7,7 +7,9 @@
     "dist/**/*.test.js",
     "dist/**/__tests__/**",
     "dist/tests/**",
-    "dist/**/*.d.ts"
+    "dist/**/*.d.ts",
+    "dist/types.js",
+    "dist/index.js"
   ],
   "extension": [
     ".js"
