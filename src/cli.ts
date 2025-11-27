@@ -11,7 +11,7 @@ const program = new Command();
 program
   .name('cm-packer')
   .description('CLI tool for packing and unpacking IMSCC files (Common Cartridge 1.4)')
-  .version('1.0.0');
+  .version('1.0.3');
 
 program
   .command('unpack')
