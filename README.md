@@ -8,8 +8,18 @@ A command-line tool for packing and unpacking IMSCC (IMS Common Cartridge) files
 - **Pack directories**: Convert folders and files back into valid IMSCC files.
 - **Remap content**: Reorganize unpacked IMSCC content into human-readable folder structures based on course organization.
 - **Metadata parsing**: Automatically parse and generate manifest metadata.
+- **Web interface**: Browser-based version available in `/docs` folder - no installation required!
 
 ## Installation
+
+### Web Version (No Installation Required)
+
+Try the browser-based version:
+1. Open `docs/index.html` in a web browser
+2. Drag and drop an IMSCC file (up to 100 MB)
+3. Download the remapped files
+
+Or visit the hosted version at: [GitHub Pages URL if deployed]
 
 ### From source
 

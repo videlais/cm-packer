@@ -3,6 +3,7 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/?(*.)+(spec|test).ts'],
+  testPathIgnorePatterns: ['\\.web\\.test\\.ts$'],  // Ignore Playwright web tests
   testTimeout: 30000, // Integration tests may take longer
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -10,7 +11,8 @@ module.exports = {
     '!src/**/*.test.ts',
     '!src/**/__tests__/**',
     '!src/types.ts',
-    '!src/index.ts'
+    '!src/index.ts',
+    '!src/web/**/*.ts'  // Exclude web files from Jest coverage
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
