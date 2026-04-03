@@ -88,7 +88,7 @@ export class IMSCCRemapper {
       this.log('Remapping completed successfully!');
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to remap IMSCC directory: ${error.message}`);
+        throw new Error(`Failed to remap IMSCC directory: ${error.message}`, { cause: error });
       }
       throw error;
     } finally {

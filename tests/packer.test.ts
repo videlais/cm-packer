@@ -253,5 +253,119 @@ describe('IMSCCPacker', () => {
 
       await expect(packer.pack()).rejects.toBe('string error');
     });
+
+    it('should not skip metadata.json in subdirectories', async () => {
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce(['subfolder', 'imsmanifest.xml']) // root level
+        .mockReturnValueOnce(['metadata.json', 'lesson.html']); // inside subfolder
+
+      (fs.statSync as jest.Mock)
+        .mockReturnValueOnce({ isDirectory: () => true })   // subfolder
+        .mockReturnValueOnce({ isDirectory: () => false })   // imsmanifest.xml
+        .mockReturnValueOnce({ isDirectory: () => false })   // metadata.json in sub
+        .mockReturnValueOnce({ isDirectory: () => false });  // lesson.html
+
+      const mockZip = {
+        addLocalFile: jest.fn(),
+        writeZip: jest.fn(),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const packer = new IMSCCPacker({
+        inputDir: mockInputDir,
+        outputFile: mockOutputFile,
+        verbose: true,
+      });
+
+      await packer.pack();
+
+      // metadata.json in subdirectory should NOT be skipped (3 files total)
+      expect(mockZip.addLocalFile).toHaveBeenCalledTimes(3);
+    });
+
+    it('should scan nested directories when creating default manifest', async () => {
+      (fs.existsSync as jest.Mock).mockReset();
+      (fs.readdirSync as jest.Mock).mockReset();
+      (fs.statSync as jest.Mock).mockReset();
+
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(true)  // input dir exists
+        .mockReturnValueOnce(false) // manifest doesn't exist
+        .mockReturnValueOnce(true); // output dir exists
+
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce(['subdir', 'file.html'])  // scanResources root
+        .mockReturnValueOnce(['nested.xml'])            // scanResources subdir
+        .mockReturnValueOnce(['subdir', 'file.html', 'imsmanifest.xml']) // addDirectoryToZip root
+        .mockReturnValueOnce(['nested.xml']);            // addDirectoryToZip subdir
+
+      (fs.statSync as jest.Mock)
+        .mockReturnValueOnce({ isDirectory: () => true })   // subdir in scanResources
+        .mockReturnValueOnce({ isDirectory: () => false })  // nested.xml in scanResources
+        .mockReturnValueOnce({ isDirectory: () => false })  // file.html in scanResources
+        .mockReturnValueOnce({ isDirectory: () => true })   // subdir in addDir
+        .mockReturnValueOnce({ isDirectory: () => false })  // file.html in addDir
+        .mockReturnValueOnce({ isDirectory: () => false })  // imsmanifest.xml in addDir
+        .mockReturnValueOnce({ isDirectory: () => false }); // nested.xml in addDir subdir
+
+      (fs.writeFileSync as jest.Mock).mockReturnValue(undefined);
+
+      const mockZip = {
+        addLocalFile: jest.fn(),
+        writeZip: jest.fn(),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const packer = new IMSCCPacker({
+        inputDir: mockInputDir,
+        outputFile: mockOutputFile,
+        verbose: true,
+      });
+
+      await packer.pack();
+
+      // Manifest should contain the nested XML resource
+      const writeCall = (fs.writeFileSync as jest.Mock).mock.calls[0];
+      expect(writeCall[1]).toContain('nested.xml');
+      expect(writeCall[1]).toContain('imsqti_xmlv1p2/imscc_xmlv1p3/assessment');
+    });
+
+    it('should skip metadata.json when scanning resources for manifest', async () => {
+      (fs.existsSync as jest.Mock).mockReset();
+      (fs.readdirSync as jest.Mock).mockReset();
+      (fs.statSync as jest.Mock).mockReset();
+
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(true)  // input dir exists
+        .mockReturnValueOnce(false) // manifest doesn't exist
+        .mockReturnValueOnce(true); // output dir exists
+
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce(['metadata.json', 'file.html'])  // scanResources root
+        .mockReturnValueOnce(['metadata.json', 'file.html', 'imsmanifest.xml']); // addDirectoryToZip root
+
+      (fs.statSync as jest.Mock).mockReturnValue({ isDirectory: () => false });
+      (fs.writeFileSync as jest.Mock).mockReturnValue(undefined);
+
+      const mockZip = {
+        addLocalFile: jest.fn(),
+        writeZip: jest.fn(),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const packer = new IMSCCPacker({
+        inputDir: mockInputDir,
+        outputFile: mockOutputFile,
+      });
+
+      await packer.pack();
+
+      // Only file.html should be in manifest resources (metadata.json skipped)
+      const writeCall = (fs.writeFileSync as jest.Mock).mock.calls[0];
+      expect(writeCall[1]).toContain('file.html');
+      expect(writeCall[1]).not.toContain('metadata.json');
+    });
   });
 });

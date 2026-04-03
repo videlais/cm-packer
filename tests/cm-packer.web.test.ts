@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import * as path from 'path';
 
 test.describe('CM-Packer Web Interface', () => {
   test.beforeEach(async ({ page }) => {
@@ -19,10 +18,6 @@ test.describe('CM-Packer Web Interface', () => {
   });
 
   test('should show error for invalid file type', async ({ page }) => {
-    // Create a test file with wrong extension
-    const buffer = Buffer.from('test content');
-    const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
-    
     // Simulate file input
     const fileInput = page.locator('#fileInput');
     await fileInput.evaluate((input: HTMLInputElement) => {
@@ -166,7 +161,7 @@ test.describe('CM-Packer Processing (Mock)', () => {
     
     // Check that IMSCCProcessor class is available
     const processorExists = await page.evaluate(() => {
-      return typeof (window as any).IMSCCProcessor !== 'undefined';
+      return typeof (window as unknown as Record<string, unknown>).IMSCCProcessor !== 'undefined';
     });
     
     // Note: This might fail if classes aren't exposed globally

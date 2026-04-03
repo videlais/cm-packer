@@ -47,7 +47,7 @@ export class IMSCCPacker {
       this.log('Packing completed successfully!');
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to pack IMSCC file: ${error.message}`);
+        throw new Error(`Failed to pack IMSCC file: ${error.message}`, { cause: error });
       }
       throw error;
     }
