@@ -268,5 +268,72 @@ describe('IMSCCUnpacker', () => {
       // Should not call mkdirSync when directory exists
       expect(fs.mkdirSync).not.toHaveBeenCalled();
     });
+
+    it('should handle manifest parsing with non-Error exception', async () => {
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+
+      const mockZip = {
+        extractAllTo: jest.fn(),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      (fs.readFileSync as jest.Mock).mockReturnValue('xml content');
+      (parseStringPromise as jest.Mock).mockRejectedValue('non-error string');
+
+      const unpacker = new IMSCCUnpacker({
+        inputFile: mockInputFile,
+        outputDir: mockOutputDir,
+        verbose: true,
+      });
+
+      // Should not throw - non-Error exceptions are caught silently
+      await expect(unpacker.unpack()).resolves.not.toThrow();
+    });
+
+    it('should handle manifest with array-wrapped metadata values', async () => {
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+
+      const mockZip = {
+        extractAllTo: jest.fn(),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: {
+          metadata: [
+            {
+              schema: ['IMS Common Cartridge'],
+              schemaversion: ['1.4.0'],
+            },
+          ],
+          resources: [
+            {
+              resource: [{ type: 'webcontent' }],
+            },
+          ],
+          organizations: [
+            {
+              organization: [{ identifier: 'org-1' }],
+            },
+          ],
+        },
+      });
+
+      const unpacker = new IMSCCUnpacker({
+        inputFile: mockInputFile,
+        outputDir: mockOutputDir,
+        verbose: true,
+      });
+
+      await unpacker.unpack();
+
+      const writeCall = (fs.writeFileSync as jest.Mock).mock.calls[0];
+      const metadata = JSON.parse(writeCall[1]);
+      expect(metadata.schema).toBe('IMS Common Cartridge');
+      expect(metadata.schemaVersion).toBe('1.4.0');
+      expect(metadata.resourceCount).toBe(1);
+      expect(metadata.organizationCount).toBe(1);
+    });
   });
 });

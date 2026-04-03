@@ -9,10 +9,10 @@
   "scripts": {
     "build": "tsc",
     "build:web": "tsc -p tsconfig.web.json && node scripts/build-web.js",
-    "test": "npm run build && c8 --reporter=text --reporter=html --reporter=lcov jest --coverage=false",
+    "test": "npm run build && jest --coverage",
     "test:web": "npm run build:web && playwright test",
     "test:watch": "jest --watch",
-    "lint": "eslint src/**/*.ts --fix",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "all": "npm run lint && npm run test && npm run build && npm run build:web && npm run test:web"
   },
   "keywords": [
