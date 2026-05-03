@@ -3,11 +3,16 @@
  * Adapts the Node.js cm-packer functionality for browser use
  */
 
-import type JSZipType from 'jszip';
+import JSZip from 'jszip';
 
-// JSZip and FileSaver are loaded via CDN in the HTML
-declare const JSZip: typeof import('jszip');
-declare const saveAs: (blob: Blob, filename: string) => void;
+function saveAs(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+}
 
 interface ProcessResult {
     success: boolean;
@@ -76,8 +81,8 @@ export class IMSCCProcessor {
 
             // Step 6: Store all files from ZIP for reference
             this.updateProgress(50, 'Extracting files...');
-            const allFiles = new Map<string, JSZipType.JSZipObject>();
-            for (const [path, zipEntry] of Object.entries(zip.files) as [string, JSZipType.JSZipObject][]) {
+            const allFiles = new Map<string, JSZip.JSZipObject>();
+            for (const [path, zipEntry] of Object.entries(zip.files) as [string, JSZip.JSZipObject][]) {
                 if (!zipEntry.dir) {
                     allFiles.set(path, zipEntry);
                 }
@@ -152,10 +157,10 @@ export class IMSCCProcessor {
     /**
      * Build mapping of wiki page IDs to their content
      */
-    private async buildWikiMapping(zip: JSZipType): Promise<void> {
+    private async buildWikiMapping(zip: JSZip): Promise<void> {
         const wikiFolder = 'wiki_content/';
         
-        for (const [path, zipEntry] of Object.entries(zip.files) as [string, JSZipType.JSZipObject][]) {
+        for (const [path, zipEntry] of Object.entries(zip.files) as [string, JSZip.JSZipObject][]) {
             if (path.startsWith(wikiFolder) && path.endsWith('.html') && !zipEntry.dir) {
                 const fileName = path.split('/').pop();
                 if (fileName) {
@@ -173,7 +178,7 @@ export class IMSCCProcessor {
     /**
      * Build the remapped directory structure based on manifest organization
      */
-    private async buildDirectoryStructure(manifestXml: Document, allFiles: Map<string, JSZipType.JSZipObject>, zip: JSZipType): Promise<void> {
+    private async buildDirectoryStructure(manifestXml: Document, allFiles: Map<string, JSZip.JSZipObject>, zip: JSZip): Promise<void> {
         const organizations = manifestXml.querySelectorAll('organization');
         
         for (const org of Array.from(organizations)) {
@@ -211,7 +216,7 @@ export class IMSCCProcessor {
     /**
      * Process a single item from the manifest (folder or file)
      */
-    private async processItem(item: Element, currentPath: string, manifestXml: Document, allFiles: Map<string, JSZipType.JSZipObject>, zip: JSZipType): Promise<void> {
+    private async processItem(item: Element, currentPath: string, manifestXml: Document, allFiles: Map<string, JSZip.JSZipObject>, zip: JSZip): Promise<void> {
         const identifier = item.getAttribute('identifier');
         const identifierref = item.getAttribute('identifierref');
         const title = this.getItemTitle(item);
@@ -353,11 +358,11 @@ export class IMSCCProcessor {
     /**
      * Copy special directories (course_settings, web_resources, etc.)
      */
-    private async copySpecialDirectories(zip: JSZipType): Promise<void> {
+    private async copySpecialDirectories(zip: JSZip): Promise<void> {
         const specialDirs = ['course_settings/', 'web_resources/', 'non_cc_assessments/'];
         
         for (const dirName of specialDirs) {
-            for (const [path, zipEntry] of Object.entries(zip.files) as [string, JSZipType.JSZipObject][]) {
+            for (const [path, zipEntry] of Object.entries(zip.files) as [string, JSZip.JSZipObject][]) {
                 if (path.startsWith(dirName) && !zipEntry.dir) {
                     const content = await zipEntry.async('blob');
                     this.files.set(path, content);
@@ -369,7 +374,7 @@ export class IMSCCProcessor {
     /**
      * Copy metadata files (manifest, metadata.json)
      */
-    private async copyMetadataFiles(zip: JSZipType, manifestContent: string): Promise<void> {
+    private async copyMetadataFiles(zip: JSZip, manifestContent: string): Promise<void> {
         // Copy manifest
         this.files.set('imsmanifest.xml', new Blob([manifestContent], { type: 'text/xml' }));
 
