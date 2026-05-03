@@ -47,6 +47,9 @@ web_modules/
 # TypeScript cache
 *.tsbuildinfo
 
+# Local release artifacts
+release-assets/
+
 # Optional npm cache directory
 .npm
 

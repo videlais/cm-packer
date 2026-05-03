@@ -19,7 +19,11 @@ Try the browser-based version:
 2. Drag and drop an IMSCC file (up to 100 MB)
 3. Download the remapped files
 
-Or visit the hosted version at: [GitHub Pages URL if deployed]
+Or visit the hosted version at: https://videlais.github.io/cm-packer/
+
+The GitHub Pages site also exposes the latest native CLI download links at:
+
+- https://videlais.github.io/cm-packer/downloads.html
 
 ### From source
 
@@ -39,6 +43,19 @@ cm-packer requires Node.js 20 or newer and is exercised in CI on Node.js 22.
 npm i -g cm-packer
 ```
 
+### Using Native Binaries
+
+Tagged releases publish standalone x64 CLI binaries for:
+
+- Windows
+- macOS
+- Linux (Debian and Ubuntu style distributions)
+
+Download them from GitHub Pages or directly from the latest GitHub Release:
+
+- https://videlais.github.io/cm-packer/downloads.html
+- https://github.com/videlais/cm-packer/releases/latest
+
 ## Validation
 
 ```bash
@@ -46,6 +63,14 @@ npm run audit
 npm run lint
 npm test
 npm run build:web
+```
+
+To build and smoke-test a local standalone binary:
+
+```bash
+npm run build
+npm run build:binaries -- --target macos-x64
+node scripts/smoke-test-binary.js release-assets/cm-packer-v1.0.4-macos-x64
 ```
 
 The security-sensitive paths reject hostile archives and manifests before extraction or remapping:

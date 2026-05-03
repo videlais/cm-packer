@@ -42,6 +42,31 @@
             font-size: 1.1em;
         }
 
+        .nav-links {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: #eef1ff;
+            color: #334;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .nav-link:hover {
+            background: #dfe5ff;
+            transform: translateY(-1px);
+        }
+
         .upload-area {
             border: 3px dashed #667eea;
             border-radius: 12px;
@@ -332,6 +357,10 @@
     <div class="container">
         <h1>📦 CM-Packer Web</h1>
         <p class="subtitle">Unpack and remap IMSCC files directly in your browser</p>
+        <div class="nav-links">
+            <a class="nav-link" href="./downloads.html">Download CLI Binaries</a>
+            <a class="nav-link" href="https://github.com/videlais/cm-packer" target="_blank" rel="noreferrer">View Source</a>
+        </div>
 
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📁</div>
