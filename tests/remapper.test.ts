@@ -1,4 +1,4 @@
-import { IMSCCRemapper } from '../src/remapper';
+import { getItemTitleFromNode, IMSCCRemapper } from '../src/remapper';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -102,6 +102,38 @@ describe('IMSCCRemapper', () => {
       expect(mockUnpack).toHaveBeenCalled();
       expect(fs.rmSync).toHaveBeenCalledWith(mockTempDir, { recursive: true, force: true });
     });
+
+    it('should log and continue if temporary directory cleanup fails', async () => {
+      const mockTempDir = '/tmp/cm-packer-abc123';
+      const mockLog = jest.spyOn(console, 'log').mockImplementation();
+
+      (os.tmpdir as jest.Mock).mockReturnValue('/tmp');
+      (fs.mkdtempSync as jest.Mock).mockReturnValue(mockTempDir);
+      (fs.rmSync as jest.Mock).mockImplementation(() => {
+        throw new Error('cleanup failed');
+      });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === '/test/course.imscc') return true;
+        if (p.includes('imsmanifest.xml')) return true;
+        if (p === mockTempDir) return true;
+        return false;
+      });
+      setupMinimalRemap();
+
+      const mockUnpack = jest.fn().mockResolvedValue(undefined);
+      (IMSCCUnpacker as jest.Mock).mockImplementation(() => ({ unpack: mockUnpack }));
+
+      const remapper = new IMSCCRemapper({
+        inputFile: '/test/course.imscc',
+        outputDir: mockOutputDir,
+        verbose: true,
+      });
+
+      await expect(remapper.remap()).resolves.not.toThrow();
+      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('Failed to clean up temporary directory'));
+
+      mockLog.mockRestore();
+    });
   });
 
   describe('remap - non-Error exception', () => {
@@ -114,6 +146,20 @@ describe('IMSCCRemapper', () => {
 
       const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
       await expect(remapper.remap()).rejects.toBe('string error');
+    });
+
+    it('should reject manifests with DTD or entity declarations', async () => {
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        return false;
+      });
+      (fs.readFileSync as jest.Mock).mockReturnValue(
+        '<!DOCTYPE manifest [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><manifest></manifest>',
+      );
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await expect(remapper.remap()).rejects.toThrow('unsupported DTD or entity declarations');
+      expect(parseStringPromise).not.toHaveBeenCalled();
     });
   });
 
@@ -249,6 +295,15 @@ describe('IMSCCRemapper', () => {
 
       const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
       await remapper.remap();
+    });
+
+    it('should return an empty title for items without a title field', () => {
+      expect(getItemTitleFromNode({})).toBe('');
+    });
+
+    it('should handle empty-title items with no children gracefully', async () => {
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      expect((remapper as unknown as { getItemChildren: (item: unknown) => unknown[] }).getItemChildren({})).toEqual([]);
     });
   });
 

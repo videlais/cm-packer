@@ -1,4 +1,4 @@
-import { IMSCCUnpacker } from '../src/unpacker';
+import { IMSCCUnpacker, normalizeArchiveEntryPath } from '../src/unpacker';
 import * as fs from 'fs';
 import AdmZip from 'adm-zip';
 
@@ -14,6 +14,24 @@ import { parseStringPromise } from 'xml2js';
 describe('IMSCCUnpacker', () => {
   const mockInputFile = '/test/input.imscc';
   const mockOutputDir = '/test/output';
+
+  const createMockEntry = (
+    entryName: string,
+    options: {
+      isDirectory?: boolean;
+      size?: number;
+      data?: Buffer;
+      attr?: number;
+    } = {},
+  ) => ({
+    entryName,
+    isDirectory: options.isDirectory ?? false,
+    attr: options.attr ?? 0,
+    header: {
+      size: options.size ?? options.data?.length ?? 0,
+    },
+    getData: jest.fn().mockReturnValue(options.data ?? Buffer.from('file-data')),
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,7 +56,7 @@ describe('IMSCCUnpacker', () => {
         .mockReturnValueOnce(false); // manifest doesn't exist
 
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -55,8 +73,11 @@ describe('IMSCCUnpacker', () => {
     it('should extract ZIP contents to output directory', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
+      const fileData = Buffer.from('<html />');
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([
+          createMockEntry('course/page.html', { data: fileData }),
+        ]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -92,8 +113,8 @@ describe('IMSCCUnpacker', () => {
 
       await unpacker.unpack();
 
-      expect(mockZip.extractAllTo).toHaveBeenCalledWith(mockOutputDir, true);
-      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(fs.mkdirSync).toHaveBeenCalledWith('/test/output/course', { recursive: true });
+      expect(fs.writeFileSync).toHaveBeenCalledWith('/test/output/course/page.html', fileData);
     });
 
     it('should handle missing manifest file', async () => {
@@ -103,7 +124,7 @@ describe('IMSCCUnpacker', () => {
         .mockReturnValueOnce(false); // manifest doesn't exist
 
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -115,7 +136,7 @@ describe('IMSCCUnpacker', () => {
 
       await unpacker.unpack();
 
-      expect(mockZip.extractAllTo).toHaveBeenCalledWith(mockOutputDir, true);
+      expect(mockZip.getEntries).toHaveBeenCalled();
       // Should not crash when manifest is missing
     });
 
@@ -123,7 +144,7 @@ describe('IMSCCUnpacker', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -144,7 +165,7 @@ describe('IMSCCUnpacker', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -156,14 +177,14 @@ describe('IMSCCUnpacker', () => {
 
       await unpacker.unpack();
 
-      expect(mockZip.extractAllTo).toHaveBeenCalled();
+      expect(mockZip.getEntries).toHaveBeenCalled();
     });
 
     it('should create metadata.json with summary', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -204,7 +225,7 @@ describe('IMSCCUnpacker', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -232,7 +253,7 @@ describe('IMSCCUnpacker', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       
       const mockZip = {
-        extractAllTo: jest.fn().mockImplementation(() => {
+        getEntries: jest.fn().mockImplementation(() => {
           throw 'string error';
         }),
       };
@@ -250,7 +271,7 @@ describe('IMSCCUnpacker', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -273,7 +294,7 @@ describe('IMSCCUnpacker', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -294,7 +315,7 @@ describe('IMSCCUnpacker', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
       const mockZip = {
-        extractAllTo: jest.fn(),
+        getEntries: jest.fn().mockReturnValue([]),
       };
       (AdmZip as jest.Mock).mockReturnValue(mockZip);
 
@@ -334,6 +355,138 @@ describe('IMSCCUnpacker', () => {
       expect(metadata.schemaVersion).toBe('1.4.0');
       expect(metadata.resourceCount).toBe(1);
       expect(metadata.organizationCount).toBe(1);
+    });
+
+    it('should reject archive entries that escape the output directory', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(true);
+
+      const mockZip = {
+        getEntries: jest.fn().mockReturnValue([createMockEntry('../escape.txt')]),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const unpacker = new IMSCCUnpacker({
+        inputFile: mockInputFile,
+        outputDir: mockOutputDir,
+      });
+
+      await expect(unpacker.unpack()).rejects.toThrow('escapes the output directory');
+    });
+
+    it('should reject oversize archives before extraction', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(true);
+
+      const mockZip = {
+        getEntries: jest.fn().mockReturnValue([
+          createMockEntry('big.bin', { size: 1024 * 1024 * 1024 + 1 }),
+        ]),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const unpacker = new IMSCCUnpacker({
+        inputFile: mockInputFile,
+        outputDir: mockOutputDir,
+      });
+
+      await expect(unpacker.unpack()).rejects.toThrow('exceeding the');
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
+    });
+
+    it('should reject archives with too many entries', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(true);
+
+      const mockEntries = Array.from({ length: 10001 }, (_, index) =>
+        createMockEntry(`file-${index}.txt`),
+      );
+      const mockZip = {
+        getEntries: jest.fn().mockReturnValue(mockEntries),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const unpacker = new IMSCCUnpacker({
+        inputFile: mockInputFile,
+        outputDir: mockOutputDir,
+      });
+
+      await expect(unpacker.unpack()).rejects.toThrow('too many entries');
+    });
+
+    it('should reject symbolic link entries', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(true);
+
+      const mockZip = {
+        getEntries: jest.fn().mockReturnValue([
+          createMockEntry('link', { attr: 0o120000 << 16 }),
+        ]),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const unpacker = new IMSCCUnpacker({
+        inputFile: mockInputFile,
+        outputDir: mockOutputDir,
+      });
+
+      await expect(unpacker.unpack()).rejects.toThrow('symbolic link');
+    });
+
+    it('should create directories for directory entries', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false);
+
+      const mockZip = {
+        getEntries: jest.fn().mockReturnValue([
+          createMockEntry('course-folder/', { isDirectory: true }),
+        ]),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const unpacker = new IMSCCUnpacker({
+        inputFile: mockInputFile,
+        outputDir: mockOutputDir,
+      });
+
+      await unpacker.unpack();
+
+      expect(fs.mkdirSync).toHaveBeenCalledWith('/test/output/course-folder', { recursive: true });
+    });
+
+    it('should reject manifests with DTD or entity declarations', async () => {
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+
+      const mockZip = {
+        getEntries: jest.fn().mockReturnValue([]),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      (fs.readFileSync as jest.Mock).mockReturnValue(
+        '<!DOCTYPE manifest [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><manifest></manifest>',
+      );
+
+      const unpacker = new IMSCCUnpacker({
+        inputFile: mockInputFile,
+        outputDir: mockOutputDir,
+        verbose: true,
+      });
+
+      await expect(unpacker.unpack()).resolves.not.toThrow();
+      expect(parseStringPromise).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('normalizeArchiveEntryPath', () => {
+    it('should reject empty or dot-only archive paths', () => {
+      expect(() => normalizeArchiveEntryPath('')).toThrow('invalid path');
+      expect(() => normalizeArchiveEntryPath('./')).toThrow('invalid path');
     });
   });
 });

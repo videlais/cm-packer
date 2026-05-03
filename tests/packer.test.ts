@@ -12,6 +12,7 @@ describe('IMSCCPacker', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (fs.lstatSync as jest.Mock).mockReturnValue({ isSymbolicLink: () => false });
   });
 
   describe('pack', () => {
@@ -252,6 +253,47 @@ describe('IMSCCPacker', () => {
       });
 
       await expect(packer.pack()).rejects.toBe('string error');
+    });
+
+    it('should reject symbolic links while packing', async () => {
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(['shortcut']);
+      (fs.lstatSync as jest.Mock).mockReturnValue({ isSymbolicLink: () => true });
+
+      const mockZip = {
+        writeZip: jest.fn(),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const packer = new IMSCCPacker({
+        inputDir: mockInputDir,
+        outputFile: mockOutputFile,
+      });
+
+      await expect(packer.pack()).rejects.toThrow('symbolic link');
+      expect(mockZip.writeZip).not.toHaveBeenCalled();
+    });
+
+    it('should reject symbolic links while scanning resources for a default manifest', async () => {
+      (fs.existsSync as jest.Mock)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false);
+
+      (fs.readdirSync as jest.Mock).mockReturnValue(['shortcut']);
+      (fs.lstatSync as jest.Mock).mockReturnValue({ isSymbolicLink: () => true });
+
+      const mockZip = {
+        writeZip: jest.fn(),
+      };
+      (AdmZip as jest.Mock).mockReturnValue(mockZip);
+
+      const packer = new IMSCCPacker({
+        inputDir: mockInputDir,
+        outputFile: mockOutputFile,
+      });
+
+      await expect(packer.pack()).rejects.toThrow('symbolic link');
+      expect(mockZip.writeZip).not.toHaveBeenCalled();
     });
 
     it('should not skip metadata.json in subdirectories', async () => {

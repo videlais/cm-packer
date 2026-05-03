@@ -26,15 +26,34 @@ Or visit the hosted version at: [GitHub Pages URL if deployed]
 ```bash
 git clone https://github.com/videlais/cm-packer.git
 cd cm-packer
+nvm use
 npm install
 npm run build
 ```
+
+cm-packer requires Node.js 20 or newer and is exercised in CI on Node.js 22.
 
 ### Using from NPM
 
 ```bash
 npm i -g cm-packer
 ```
+
+## Validation
+
+```bash
+npm run audit
+npm run lint
+npm test
+npm run build:web
+```
+
+The security-sensitive paths reject hostile archives and manifests before extraction or remapping:
+
+- IMSCC archive entries cannot escape the chosen output directory.
+- Symbolic links are rejected during packing and unpacking.
+- Archives that expand beyond 1 GiB are rejected.
+- Manifest XML files containing DTD or entity declarations are rejected.
 
 ## Usage
 
@@ -45,6 +64,8 @@ Extract an IMSCC file to a directory:
 ```bash
 cm-packer unpack -i course.imscc -o ./output-folder
 ```
+
+The input file must use the `.imscc` extension.
 
 With verbose logging:
 
@@ -59,6 +80,8 @@ Create an IMSCC file from a directory:
 ```bash
 cm-packer pack -i ./input-folder -o course.imscc
 ```
+
+The output file must use the `.imscc` extension.
 
 With verbose logging:
 
@@ -81,6 +104,8 @@ Directly from an IMSCC file (automatically unpacks to a temporary directory):
 ```bash
 cm-packer remap -f course.imscc -o ./remapped-course
 ```
+
+When `--file` is used, the input file must use the `.imscc` extension.
 
 With verbose logging:
 

@@ -1,17 +1,44 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import * as fs from 'fs';
 import { IMSCCUnpacker } from './unpacker';
 import { IMSCCPacker } from './packer';
 import { IMSCCRemapper } from './remapper';
 import * as path from 'path';
 
+const MAX_INPUT_FILE_BYTES = 1024 * 1024 * 1024;
+
 const program = new Command();
+
+function assertImsccInput(filePath: string): void {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext !== '.imscc') {
+    throw new Error(`Input file must use the .imscc extension: ${filePath}`);
+  }
+
+  if (fs.existsSync(filePath)) {
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) {
+      throw new Error(`Input path must be a file: ${filePath}`);
+    }
+    if (stat.size > MAX_INPUT_FILE_BYTES) {
+      throw new Error(`Input file exceeds the ${MAX_INPUT_FILE_BYTES} byte limit: ${filePath}`);
+    }
+  }
+}
+
+function assertImsccOutput(filePath: string): void {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext !== '.imscc') {
+    throw new Error(`Output file must use the .imscc extension: ${filePath}`);
+  }
+}
 
 program
   .name('cm-packer')
   .description('CLI tool for packing and unpacking IMSCC files (Common Cartridge 1.4)')
-  .version('1.0.3');
+  .version('1.0.4');
 
 program
   .command('unpack')
@@ -21,8 +48,11 @@ program
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (options) => {
     try {
+      const inputFile = path.resolve(options.input);
+      assertImsccInput(inputFile);
+
       const unpacker = new IMSCCUnpacker({
-        inputFile: path.resolve(options.input),
+        inputFile,
         outputDir: path.resolve(options.output),
         verbose: options.verbose,
       });
@@ -46,9 +76,12 @@ program
   .option('-v, --verbose', 'Enable verbose logging', false)
   .action(async (options) => {
     try {
+      const outputFile = path.resolve(options.output);
+      assertImsccOutput(outputFile);
+
       const packer = new IMSCCPacker({
         inputDir: path.resolve(options.input),
-        outputFile: path.resolve(options.output),
+        outputFile,
         verbose: options.verbose,
       });
       await packer.pack();
@@ -83,9 +116,14 @@ program
         process.exit(1);
       }
 
+      const inputFile = options.file ? path.resolve(options.file) : undefined;
+      if (inputFile) {
+        assertImsccInput(inputFile);
+      }
+
       const remapper = new IMSCCRemapper({
         inputDir: options.input ? path.resolve(options.input) : undefined,
-        inputFile: options.file ? path.resolve(options.file) : undefined,
+        inputFile,
         outputDir: path.resolve(options.output),
         verbose: options.verbose,
       });

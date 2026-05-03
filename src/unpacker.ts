@@ -4,6 +4,31 @@ import * as path from 'path';
 import { parseStringPromise } from 'xml2js';
 import { UnpackOptions } from './types';
 
+const MAX_ARCHIVE_ENTRIES = 10000;
+const MAX_UNCOMPRESSED_BYTES = 1024 * 1024 * 1024;
+const MANIFEST_XML_REJECTION_PATTERN = /<!DOCTYPE|<!ENTITY/i;
+
+export function normalizeArchiveEntryPath(entryName: string): string {
+  const normalizedEntryName = entryName.replace(/\\/g, '/');
+  const normalizedPath = path.posix.normalize(normalizedEntryName);
+  const segments = normalizedPath.split('/').filter((segment) => segment.length > 0 && segment !== '.');
+
+  if (
+    normalizedEntryName.startsWith('/') ||
+    /^[A-Za-z]:/.test(normalizedEntryName) ||
+    normalizedPath === '..' ||
+    segments.includes('..')
+  ) {
+    throw new Error(`Archive entry escapes the output directory: ${entryName}`);
+  }
+
+  if (segments.length === 0) {
+    throw new Error(`Archive entry has an invalid path: ${entryName}`);
+  }
+
+  return segments.join(path.sep);
+}
+
 export class IMSCCUnpacker {
   private options: UnpackOptions;
 
@@ -28,7 +53,7 @@ export class IMSCCUnpacker {
       // Extract ZIP contents
       const zip = new AdmZip(this.options.inputFile);
       this.log(`Extracting files to: ${this.options.outputDir}`);
-      zip.extractAllTo(this.options.outputDir, true);
+      this.extractEntries(zip);
 
       // Parse manifest
       await this.parseManifest();
@@ -52,6 +77,7 @@ export class IMSCCUnpacker {
 
     try {
       const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
+      this.assertSafeManifest(manifestContent);
       const parsed = await parseStringPromise(manifestContent);
 
       this.log('Manifest parsed successfully');
@@ -86,6 +112,53 @@ export class IMSCCUnpacker {
       if (error instanceof Error) {
         this.log(`Warning: Failed to parse manifest: ${error.message}`);
       }
+    }
+  }
+
+  private extractEntries(zip: AdmZip): void {
+    const entries = zip.getEntries();
+
+    if (entries.length > MAX_ARCHIVE_ENTRIES) {
+      throw new Error(`Archive contains too many entries (${entries.length})`);
+    }
+
+    const totalUncompressedBytes = entries.reduce((sum, entry) => sum + entry.header.size, 0);
+    if (totalUncompressedBytes > MAX_UNCOMPRESSED_BYTES) {
+      throw new Error(
+        `Archive expands to ${totalUncompressedBytes} bytes, exceeding the ${MAX_UNCOMPRESSED_BYTES} byte limit`,
+      );
+    }
+
+    for (const entry of entries) {
+      const safeRelativePath = this.getSafeEntryPath(entry.entryName);
+      const targetPath = path.join(this.options.outputDir, safeRelativePath);
+
+      if (this.isSymbolicLinkEntry(entry)) {
+        throw new Error(`Archive entry is a symbolic link: ${entry.entryName}`);
+      }
+
+      if (entry.isDirectory) {
+        fs.mkdirSync(targetPath, { recursive: true });
+        continue;
+      }
+
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, entry.getData());
+    }
+  }
+
+  private getSafeEntryPath(entryName: string): string {
+    return normalizeArchiveEntryPath(entryName);
+  }
+
+  private isSymbolicLinkEntry(entry: AdmZip.IZipEntry): boolean {
+    const mode = entry.attr >>> 16;
+    return (mode & fs.constants.S_IFMT) === fs.constants.S_IFLNK;
+  }
+
+  private assertSafeManifest(manifestContent: string): void {
+    if (MANIFEST_XML_REJECTION_PATTERN.test(manifestContent)) {
+      throw new Error('Manifest contains unsupported DTD or entity declarations');
     }
   }
 

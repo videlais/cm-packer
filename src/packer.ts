@@ -59,6 +59,12 @@ export class IMSCCPacker {
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry);
       const zipEntryPath = zipPath ? path.join(zipPath, entry) : entry;
+      const linkStat = fs.lstatSync(fullPath);
+
+      if (linkStat.isSymbolicLink()) {
+        throw new Error(`Refusing to pack symbolic link: ${fullPath}`);
+      }
+
       const stat = fs.statSync(fullPath);
 
       // Skip metadata.json if it exists (generated file)
@@ -132,6 +138,12 @@ export class IMSCCPacker {
       for (const entry of entries) {
         const fullPath = path.join(currentPath, entry);
         const relativePath = path.relative(basePath, fullPath);
+        const linkStat = fs.lstatSync(fullPath);
+
+        if (linkStat.isSymbolicLink()) {
+          throw new Error(`Refusing to pack symbolic link: ${fullPath}`);
+        }
+
         const stat = fs.statSync(fullPath);
 
         // Skip manifest and metadata files

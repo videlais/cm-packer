@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc",
     "build:web": "tsc -p tsconfig.web.json && node scripts/build-web.js",
+    "audit": "npm audit --audit-level=moderate",
     "test": "npm run build && jest --coverage",
     "test:web": "npm run build:web && playwright test",
     "test:watch": "jest --watch",
@@ -24,6 +25,9 @@
   ],
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
@@ -39,7 +43,6 @@
     "eslint": "^10.1.0",
     "http-server": "^14.1.1",
     "jest": "^30.3.0",
-    "nyc": "^18.0.0",
     "ts-jest": "^29.4.9",
     "typescript": "^6.0.2"
   },

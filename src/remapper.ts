@@ -4,6 +4,25 @@ import * as os from 'os';
 import { parseStringPromise } from 'xml2js';
 import { IMSCCUnpacker } from './unpacker';
 
+const MANIFEST_XML_REJECTION_PATTERN = /<!DOCTYPE|<!ENTITY/i;
+
+export function getItemTitleFromNode(item: unknown): string {
+  if (!item || typeof item !== 'object') return '';
+
+  const itemObj = item as Record<string, unknown>;
+  if (itemObj.title) {
+    if (Array.isArray(itemObj.title) && itemObj.title.length > 0) {
+      return String(itemObj.title[0]).trim();
+    }
+
+    if (typeof itemObj.title === 'string') {
+      return itemObj.title.trim();
+    }
+  }
+
+  return '';
+}
+
 export interface RemapOptions {
   inputDir?: string;
   inputFile?: string;
@@ -95,17 +114,21 @@ export class IMSCCRemapper {
       // Clean up temp directory if we created one
       if (this.tempDir && fs.existsSync(this.tempDir)) {
         this.log(`Cleaning up temporary directory: ${this.tempDir}`);
-        fs.rmSync(this.tempDir, { recursive: true, force: true });
+        try {
+          fs.rmSync(this.tempDir, { recursive: true, force: true });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.log(`Warning: Failed to clean up temporary directory: ${message}`);
+        }
       }
     }
   }
 
   private async parseManifest(manifestPath: string): Promise<void> {
     this.log('Parsing manifest...');
-    const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
-    const parsed = await parseStringPromise(manifestContent);
+    const parsed = await this.readManifestXml(manifestPath);
 
-    const manifest = parsed.manifest || {};
+    const manifest = (parsed.manifest as Record<string, unknown> | undefined) ?? {};
     const orgsObj = Array.isArray(manifest.organizations) ? manifest.organizations[0] : manifest.organizations;
     
     if (orgsObj?.organization) {
@@ -176,11 +199,10 @@ export class IMSCCRemapper {
 
   private async buildDirectoryStructure(manifestPath: string): Promise<void> {
     this.log('Building course structure...');
-    
-    const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
-    const parsed = await parseStringPromise(manifestContent);
 
-    const manifest = parsed.manifest || {};
+    const parsed = await this.readManifestXml(manifestPath);
+
+    const manifest = (parsed.manifest as Record<string, unknown> | undefined) ?? {};
     const orgsObj = Array.isArray(manifest.organizations) ? manifest.organizations[0] : manifest.organizations;
 
     if (orgsObj?.organization) {
@@ -210,17 +232,7 @@ export class IMSCCRemapper {
   }
 
   private getItemTitle(item: unknown): string {
-    if (!item || typeof item !== 'object') return '';
-    
-    const itemObj = item as Record<string, unknown>;
-    if (itemObj.title) {
-      if (Array.isArray(itemObj.title) && itemObj.title.length > 0) {
-        return String(itemObj.title[0]).trim();
-      } else if (typeof itemObj.title === 'string') {
-        return itemObj.title.trim();
-      }
-    }
-    return '';
+    return getItemTitleFromNode(item);
   }
 
   private getItemChildren(item: unknown): unknown[] {
@@ -440,5 +452,14 @@ export class IMSCCRemapper {
     if (this.options.verbose) {
       console.log(message);
     }
+  }
+
+  private async readManifestXml(manifestPath: string): Promise<Record<string, unknown>> {
+    const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
+    if (MANIFEST_XML_REJECTION_PATTERN.test(manifestContent)) {
+      throw new Error('Manifest contains unsupported DTD or entity declarations');
+    }
+
+    return parseStringPromise(manifestContent) as Promise<Record<string, unknown>>;
   }
 }

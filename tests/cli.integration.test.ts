@@ -126,6 +126,19 @@ describe('CLI Integration Tests', () => {
       }).toThrow();
     });
 
+    it('should fail when output file does not use the imscc extension', () => {
+      const inputDir = path.join(TEST_DIR, 'input');
+      fs.mkdirSync(inputDir, { recursive: true });
+      fs.writeFileSync(path.join(inputDir, 'test.html'), 'test');
+
+      expect(() => {
+        execSync(
+          `node "${CLI_PATH}" pack -i "${inputDir}" -o "${path.join(TEST_DIR, 'output.zip')}"`,
+          { encoding: 'utf-8', stdio: 'pipe' }
+        );
+      }).toThrow(/\.imscc extension/);
+    });
+
     it('should create output directory if it does not exist', () => {
       const inputDir = path.join(TEST_DIR, 'input');
       fs.mkdirSync(inputDir, { recursive: true });
@@ -281,6 +294,18 @@ describe('CLI Integration Tests', () => {
           { encoding: 'utf-8', stdio: 'pipe' }
         );
       }).toThrow();
+    });
+
+    it('should fail when input file does not use the imscc extension', () => {
+      const inputFile = path.join(TEST_DIR, 'input.zip');
+      fs.writeFileSync(inputFile, 'not-an-imscc');
+
+      expect(() => {
+        execSync(
+          `node "${CLI_PATH}" unpack -i "${inputFile}" -o "${path.join(TEST_DIR, 'output')}"`,
+          { encoding: 'utf-8', stdio: 'pipe' }
+        );
+      }).toThrow(/\.imscc extension/);
     });
 
     it('should handle IMSCC without manifest gracefully', () => {
