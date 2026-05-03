@@ -1,5 +1,11 @@
 # cm-packer
 
+[![CI](https://github.com/videlais/cm-packer/actions/workflows/ci.yml/badge.svg)](https://github.com/videlais/cm-packer/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/videlais/cm-packer/actions/workflows/codeql.yml/badge.svg)](https://github.com/videlais/cm-packer/actions/workflows/codeql.yml)
+[![npm version](https://img.shields.io/npm/v/cm-packer.svg)](https://www.npmjs.com/package/cm-packer)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js >=20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+
 A command-line tool for packing and unpacking IMSCC (IMS Common Cartridge) files used by Canvas LMS and other learning management systems. This tool follows the Common Cartridge 1.4 standard.
 
 ## Features
@@ -15,15 +21,16 @@ A command-line tool for packing and unpacking IMSCC (IMS Common Cartridge) files
 ### Web Version (No Installation Required)
 
 Try the browser-based version:
+
 1. Open `docs/index.html` in a web browser
 2. Drag and drop an IMSCC file (up to 100 MB)
 3. Download the remapped files
 
-Or visit the hosted version at: https://videlais.github.io/cm-packer/
+Or visit the hosted version at: [https://videlais.github.io/cm-packer/](https://videlais.github.io/cm-packer/)
 
 The GitHub Pages site also exposes the latest native CLI download links at:
 
-- https://videlais.github.io/cm-packer/downloads.html
+- [https://videlais.github.io/cm-packer/downloads.html](https://videlais.github.io/cm-packer/downloads.html)
 
 ### From source
 
@@ -53,8 +60,8 @@ Tagged releases publish standalone x64 CLI binaries for:
 
 Download them from GitHub Pages or directly from the latest GitHub Release:
 
-- https://videlais.github.io/cm-packer/downloads.html
-- https://github.com/videlais/cm-packer/releases/latest
+- [Downloads](https://videlais.github.io/cm-packer/downloads.html)
+- [Latest Releases](https://github.com/videlais/cm-packer/releases/latest)
 
 ## Validation
 
