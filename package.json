@@ -3,14 +3,21 @@
   "version": "1.0.4",
   "description": "Command-line tool for packing and unpacking IMSCC files (Common Cartridge 1.4)",
   "main": "dist/index.js",
+  "homepage": "https://videlais.github.io/cm-packer/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/videlais/cm-packer.git"
+  },
   "bin": {
     "cm-packer": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
+    "build:binaries": "node scripts/build-binaries.js",
     "build:web": "tsc -p tsconfig.web.json && node scripts/build-web.js",
     "audit": "npm audit --audit-level=moderate",
     "test": "npm run build && jest --coverage",
+    "test:binary": "node scripts/smoke-test-binary.js",
     "test:web": "npm run build:web && playwright test",
     "test:watch": "jest --watch",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
@@ -29,6 +36,7 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@yao-pkg/pkg": "^6.19.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "@types/adm-zip": "^0.5.8",
@@ -45,6 +53,9 @@
     "jest": "^30.3.0",
     "ts-jest": "^29.4.9",
     "typescript": "^6.0.2"
+  },
+  "pkg": {
+    "outputPath": "release-assets"
   },
   "dependencies": {
     "adm-zip": "^0.5.17",

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CM-Packer Downloads</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(150deg, #183153 0%, #264d73 45%, #f0b429 100%);
+            color: #102033;
+            padding: 32px 20px;
+        }
+
+        .shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: rgba(250, 252, 255, 0.96);
+            border-radius: 24px;
+            box-shadow: 0 24px 72px rgba(16, 32, 51, 0.24);
+            overflow: hidden;
+        }
+
+        .hero {
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(15, 37, 60, 0.95), rgba(31, 76, 120, 0.88));
+            color: #f8fbff;
+        }
+
+        .eyebrow {
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-size: 0.82rem;
+            opacity: 0.72;
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            font-size: clamp(2.3rem, 4vw, 3.7rem);
+            line-height: 1;
+            margin-bottom: 16px;
+        }
+
+        .hero p {
+            max-width: 760px;
+            line-height: 1.6;
+            font-size: 1.02rem;
+            opacity: 0.9;
+        }
+
+        .hero-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .hero-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 18px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.12);
+            color: #f8fbff;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .hero-link.primary {
+            background: #f0b429;
+            color: #183153;
+            border-color: transparent;
+        }
+
+        .content {
+            padding: 32px 40px 40px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .status-card {
+            background: #f4f8fc;
+            border-radius: 18px;
+            padding: 18px 20px;
+            border: 1px solid #dde7f0;
+        }
+
+        .status-card span {
+            display: block;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #55708c;
+            margin-bottom: 8px;
+        }
+
+        .status-card strong {
+            font-size: 1.1rem;
+            color: #132940;
+        }
+
+        .downloads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 18px;
+            margin-top: 18px;
+        }
+
+        .download-card {
+            background: #fff;
+            border: 1px solid #dce6ef;
+            border-radius: 20px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 220px;
+        }
+
+        .download-card h2 {
+            font-size: 1.25rem;
+            color: #17314a;
+        }
+
+        .download-card p,
+        .download-card li {
+            line-height: 1.5;
+            color: #4d657d;
+        }
+
+        .download-card ul {
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+
+        .asset-link {
+            margin-top: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            text-decoration: none;
+            background: #17314a;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .note {
+            margin-top: 30px;
+            padding: 18px 20px;
+            border-radius: 16px;
+            background: #fff7e6;
+            color: #7c5b14;
+            border: 1px solid #f0d490;
+        }
+
+        .error {
+            color: #8b1e35;
+        }
+
+        @media (max-width: 720px) {
+            .hero,
+            .content {
+                padding: 28px 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <div class="eyebrow">Native CLI Downloads</div>
+            <h1>Standalone CM-Packer Binaries</h1>
+            <p>
+                Download the latest tagged release for Windows, macOS, and Debian or Ubuntu style Linux.
+                These binaries are built from the release workflow, verified with the sample IMSCC fixture,
+                and published as GitHub Release assets.
+            </p>
+            <div class="hero-links">
+                <a class="hero-link primary" href="./index.html">Open Web App</a>
+                <a class="hero-link" href="https://github.com/videlais/cm-packer/releases/latest" target="_blank" rel="noreferrer">Latest Release</a>
+                <a class="hero-link" href="https://github.com/videlais/cm-packer" target="_blank" rel="noreferrer">Repository</a>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="status-grid">
+                <div class="status-card">
+                    <span>Current Release</span>
+                    <strong id="releaseVersion">Loading…</strong>
+                </div>
+                <div class="status-card">
+                    <span>Published</span>
+                    <strong id="releaseTime">Loading…</strong>
+                </div>
+                <div class="status-card">
+                    <span>Source Commit</span>
+                    <strong id="releaseCommit">Loading…</strong>
+                </div>
+                <div class="status-card">
+                    <span>Status</span>
+                    <strong id="releaseStatus">Fetching release metadata…</strong>
+                </div>
+            </div>
+
+            <div class="downloads-grid" id="downloadsGrid"></div>
+
+            <div class="note">
+                First release pass targets <strong>x64</strong> binaries only. Use the npm package if you need a different architecture before those builds are added.
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const repository = 'videlais/cm-packer';
+        const apiUrl = `https://api.github.com/repos/${repository}/releases/latest`;
+        const expectedAssets = [
+            {
+                title: 'Windows x64',
+                platform: 'windows-x64',
+                description: 'Standalone .exe for Windows 10/11 and Windows Server x64.',
+            },
+            {
+                title: 'macOS x64',
+                platform: 'macos-x64',
+                description: 'Intel macOS binary for native command-line usage.',
+            },
+            {
+                title: 'Linux x64',
+                platform: 'linux-x64',
+                description: 'Standalone binary for Debian, Ubuntu, and similar x64 distributions.',
+            },
+        ];
+
+        const releaseVersion = document.getElementById('releaseVersion');
+        const releaseTime = document.getElementById('releaseTime');
+        const releaseCommit = document.getElementById('releaseCommit');
+        const releaseStatus = document.getElementById('releaseStatus');
+        const downloadsGrid = document.getElementById('downloadsGrid');
+
+        function renderAssetCard(config, asset, releaseTag) {
+            const card = document.createElement('article');
+            card.className = 'download-card';
+
+            const title = document.createElement('h2');
+            title.textContent = config.title;
+            card.appendChild(title);
+
+            const description = document.createElement('p');
+            description.textContent = config.description;
+            card.appendChild(description);
+
+            const details = document.createElement('ul');
+            const versionItem = document.createElement('li');
+            versionItem.innerHTML = `<strong>Version:</strong> ${releaseTag}`;
+            details.appendChild(versionItem);
+
+            if (asset) {
+                const fileItem = document.createElement('li');
+                fileItem.innerHTML = `<strong>Asset:</strong> ${asset.name}`;
+                details.appendChild(fileItem);
+
+                const sizeItem = document.createElement('li');
+                sizeItem.innerHTML = `<strong>Size:</strong> ${(asset.size / (1024 * 1024)).toFixed(1)} MB`;
+                details.appendChild(sizeItem);
+
+                const updatedItem = document.createElement('li');
+                updatedItem.innerHTML = `<strong>Updated:</strong> ${new Date(asset.updated_at).toLocaleString()}`;
+                details.appendChild(updatedItem);
+            } else {
+                const unavailableItem = document.createElement('li');
+                unavailableItem.className = 'error';
+                unavailableItem.textContent = 'No asset found for this platform in the latest release.';
+                details.appendChild(unavailableItem);
+            }
+
+            card.appendChild(details);
+
+            const link = document.createElement('a');
+            link.className = 'asset-link';
+            link.href = asset ? asset.browser_download_url : `https://github.com/${repository}/releases/latest`;
+            link.target = '_blank';
+            link.rel = 'noreferrer';
+            link.textContent = asset ? 'Download Binary' : 'Open Release';
+            card.appendChild(link);
+
+            return card;
+        }
+
+        async function loadRelease() {
+            try {
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        Accept: 'application/vnd.github+json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`GitHub API returned ${response.status}`);
+                }
+
+                const release = await response.json();
+                const releaseTag = release.tag_name || 'Unknown';
+                releaseVersion.textContent = releaseTag;
+                releaseTime.textContent = release.published_at ? new Date(release.published_at).toLocaleString() : 'Unknown';
+                releaseCommit.textContent = release.target_commitish || 'Unknown';
+                releaseStatus.textContent = release.name || 'Latest release loaded';
+
+                downloadsGrid.replaceChildren(...expectedAssets.map((config) => {
+                    const asset = release.assets.find((candidate) => candidate.name.includes(config.platform));
+                    return renderAssetCard(config, asset, releaseTag);
+                }));
+            } catch (error) {
+                releaseVersion.textContent = 'Unavailable';
+                releaseTime.textContent = 'Unavailable';
+                releaseCommit.textContent = 'Unavailable';
+                releaseStatus.textContent = 'Could not load latest release';
+                const message = document.createElement('p');
+                message.className = 'error';
+                message.textContent = `Failed to load release metadata. ${error instanceof Error ? error.message : String(error)}`;
+                downloadsGrid.replaceChildren(message);
+            }
+        }
+
+        loadRelease();
+    </script>
+</body>
+</html>
