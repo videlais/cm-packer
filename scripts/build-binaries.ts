@@ -2,8 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 
+// require() paths are not rewritten by tsc; use the runtime path from scripts/dist/
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const packageJson = require('../package.json') as { version: string; pkg: { outputPath: string } };
+const packageJson = require('../../package.json') as { version: string; pkg: { outputPath: string } };
 
 interface BinaryTarget {
   pkgTarget: string;
