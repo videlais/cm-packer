@@ -79,8 +79,9 @@ function ensureBuildOutputExists(): string {
 }
 
 function resolvePkgBin(): string {
-  const pkgBinary = process.platform === 'win32' ? 'pkg.exe' : 'pkg';
-  return path.resolve(__dirname, `../../node_modules/.bin/${pkgBinary}`);
+  // npm creates pkg.cmd on Windows (not pkg.exe); .cmd files require shell: true to execute
+  const ext = process.platform === 'win32' ? '.cmd' : '';
+  return path.resolve(__dirname, `../../node_modules/.bin/pkg${ext}`);
 }
 
 function buildBinary(
@@ -102,6 +103,7 @@ function buildBinary(
     {
       stdio: 'inherit',
       env: process.env,
+      shell: process.platform === 'win32',
     },
   );
 

@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label for binary names (e.g. v1.1.3-test)'
+        required: false
+        default: 'test'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -47,20 +53,23 @@ jobs:
 
       - name: Package binary
         run: npm run build:binaries -- --target ${{ matrix.target }}
+        env:
+          RELEASE_TAG: ${{ inputs.version || github.ref_name }}
 
       - name: Smoke test binary
-        run: node scripts/dist/smoke-test-binary.js release-assets/cm-packer-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
+        run: node scripts/dist/smoke-test-binary.js release-assets/cm-packer-${{ inputs.version || github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cm-packer-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
-          path: release-assets/cm-packer-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
+          name: cm-packer-${{ inputs.version || github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
+          path: release-assets/cm-packer-${{ inputs.version || github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
 
   publish-release:
     name: Publish Release Assets
     runs-on: ubuntu-latest
     needs: build-binaries
+    if: github.event_name == 'push'
     permissions:
       contents: write
 
