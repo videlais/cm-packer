@@ -760,4 +760,441 @@ describe('IMSCCRemapper', () => {
       expect(fs.copyFileSync).toHaveBeenCalled();
     });
   });
+
+  // ─── Targeted branch coverage additions ───────────────────────────────────
+
+  describe('getItemTitleFromNode - truthy non-string non-array title', () => {
+    it('should return empty string when title is a truthy non-string non-array (e.g. empty array)', () => {
+      // Empty array: Array.isArray=true but length=0 → falls to typeof check → not string → ''
+      expect(getItemTitleFromNode({ title: [] })).toBe('');
+    });
+  });
+
+  describe('remap - cleanup non-Error exception', () => {
+    it('should stringify non-Error thrown during temp directory cleanup', async () => {
+      const mockTempDir = '/tmp/cm-packer-abc123';
+      const mockLog = jest.spyOn(console, 'log').mockImplementation();
+
+      (os.tmpdir as jest.Mock).mockReturnValue('/tmp');
+      (fs.mkdtempSync as jest.Mock).mockReturnValue(mockTempDir);
+      (fs.rmSync as jest.Mock).mockImplementation(() => {
+         
+        throw 'non-error string value'; // non-Error exception
+      });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === '/test/course.imscc') return true;
+        if (p.includes('imsmanifest.xml')) return true;
+        if (p === mockTempDir) return true;
+        return false;
+      });
+      setupMinimalRemap();
+
+      const mockUnpack = jest.fn().mockResolvedValue(undefined);
+      (IMSCCUnpacker as jest.Mock).mockImplementation(() => ({ unpack: mockUnpack }));
+
+      const remapper = new IMSCCRemapper({
+        inputFile: '/test/course.imscc',
+        outputDir: mockOutputDir,
+        verbose: true,
+      });
+      await expect(remapper.remap()).resolves.not.toThrow();
+      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('non-error string value'));
+      mockLog.mockRestore();
+    });
+  });
+
+  describe('remap - manifest alternative structures', () => {
+    function baseManifestSetup() {
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+      (fs.statSync as jest.Mock).mockReturnValue({ isDirectory: () => false, isFile: () => false });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        return false;
+      });
+    }
+
+    it('should handle parsed result with no manifest property (uses ?? fallback)', async () => {
+      baseManifestSetup();
+      // parsed.manifest is undefined → ?? {} fallback fires (lines 131, 205)
+      (parseStringPromise as jest.Mock).mockResolvedValue({});
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+    });
+
+    it('should handle manifest.organizations as a non-array object (else branch of ternary)', async () => {
+      baseManifestSetup();
+      // organizations is an object, not array → takes else/direct path (lines 132, 206)
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: { organizations: { organization: [{}] } },
+      });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+    });
+
+    it('should handle orgsObj with no organization property (optional chain false path)', async () => {
+      baseManifestSetup();
+      // orgsObj?.organization is undefined/falsy → if body skipped (lines 134, 208)
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: { organizations: [{}] },
+      });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+    });
+
+    it('should handle organization as a non-array object (wraps in array)', async () => {
+      baseManifestSetup();
+      // organization is a plain object → [orgsObj.organization] path taken (lines 135, 209)
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: { organizations: [{ organization: {} }] },
+      });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+    });
+
+    it('should handle org.item as a non-array object (wraps in array)', async () => {
+      baseManifestSetup();
+      // org.item is a plain object → [org.item] path taken (lines 139, 213)
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: { organizations: [{ organization: [{ item: {} }] }] },
+      });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+    });
+  });
+
+  describe('remap - extractTitles and processItem no-$ fallbacks', () => {
+    // A single item with a plain string title, no $ attribute, and a non-array item child
+    // covers lines: 18, 153, 157, 160, 166, 169, 176, 243, 253, 254, 257
+    it('should cover || identifier/identifierref fallbacks and non-array item child', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: {
+          organizations: [{
+            organization: [{
+              item: [{
+                // No $ at all → attrs is undefined → both || fallbacks fire (lines 153, 157, 253, 254)
+                // title is a plain string → covers line 18 (getItemTitleFromNode) and line 160 (extractTitles)
+                // no identifierref or identifier → covers lines 166, 169 (if-branches never true)
+                // item is a non-array object → covers lines 176 (extractTitles) and 243 (getItemChildren)
+                title: 'Plain String Title No Ids',
+                item: {}, // non-array → wraps in [{}]; the child {} has no title → processItem early return (line 257)
+              }],
+            }],
+          }],
+        },
+      });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        return false;
+      });
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+      (fs.statSync as jest.Mock).mockReturnValue({ isDirectory: () => false, isFile: () => false });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+    });
+
+    it('should not set title when title is truthy but not array or string', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: {
+          organizations: [{
+            organization: [{
+              item: [{
+                $: { identifier: 'id1' },
+                title: 42, // truthy, not array, not string → line 160 else-if false path
+              }],
+            }],
+          }],
+        },
+      });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        return false;
+      });
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+      (fs.statSync as jest.Mock).mockReturnValue({ isDirectory: () => false, isFile: () => false });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+    });
+  });
+
+  describe('remap - buildWikiMapping non-html files', () => {
+    it('should skip non-.html files inside wiki_content directory', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: { organizations: [{ organization: [{}] }] },
+      });
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+      (fs.statSync as jest.Mock).mockReturnValue({ isDirectory: () => false, isFile: () => false });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        if (p.includes('wiki_content') && !p.endsWith('.css') && !p.endsWith('.js')) return true;
+        return false;
+      });
+      (fs.readdirSync as jest.Mock).mockImplementation((p: string) => {
+        if (typeof p === 'string' && p.includes('wiki_content')) {
+          return ['styles.css', 'script.js']; // no .html files → if(file.endsWith('.html')) false path
+        }
+        return [];
+      });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+      // wikiMapping stays empty; no copyFileSync for wiki files
+    });
+  });
+
+  describe('remap - processItem folder already exists', () => {
+    it('should skip mkdirSync when the folder path already exists', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: {
+          organizations: [{
+            organization: [{
+              item: [{
+                $: { identifier: 'folder1' },
+                title: ['Existing Folder'],
+                item: [{ $: { identifier: 'c1', identifierref: 'res1' }, title: ['Child'] }],
+              }],
+            }],
+          }],
+        },
+      });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        if (typeof p === 'string' && p.includes('Existing Folder')) return true; // folder already there
+        return false;
+      });
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+      (fs.statSync as jest.Mock).mockReturnValue({ isDirectory: () => false, isFile: () => false });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+
+      // mkdirSync should NOT be called for the already-existing folder path
+      const folderMkdir = (fs.mkdirSync as jest.Mock).mock.calls.find(
+        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('Existing Folder'),
+      );
+      expect(folderMkdir).toBeUndefined();
+    });
+  });
+
+  describe('remap - processItem leaf: identifierref absent (uses identifier)', () => {
+    it('should use identifier as refId when identifierref is absent', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: {
+          organizations: [{
+            organization: [{
+              item: [{
+                $: { identifier: 'res-only' }, // no identifierref in $ → line 254 and 272 false paths
+                title: ['Identifier Only Item'],
+              }],
+            }],
+          }],
+        },
+      });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        if (p.endsWith('.xml') && p.includes('res-only')) return true;
+        return false;
+      });
+      (fs.statSync as jest.Mock).mockImplementation((p: string) => {
+        if (typeof p === 'string' && p.endsWith('.xml') && p.includes('res-only')) {
+          return { isDirectory: () => false, isFile: () => true };
+        }
+        return { isDirectory: () => false, isFile: () => false };
+      });
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+      expect(fs.copyFileSync).toHaveBeenCalled();
+    });
+  });
+
+  describe('remap - processItem leaf: no identifiers at all', () => {
+    it('should return early when neither identifierref nor identifier is present', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: {
+          organizations: [{
+            organization: [{
+              item: [{
+                // No $ → identifier and identifierref both undefined → refId undefined → early return (line 273)
+                title: ['Title No Ids At All'],
+              }],
+            }],
+          }],
+        },
+      });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        return false;
+      });
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+      (fs.statSync as jest.Mock).mockReturnValue({ isDirectory: () => false, isFile: () => false });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+      // processItem early-returns before any resource copy; remap itself should complete without error
+    });
+  });
+
+  describe('remap - processItem wiki href exists in manifest but file missing', () => {
+    it('should not copy when wiki_content href is in manifest but the file is absent', async () => {
+      const manifestXml =
+        '<manifest><resources><resource identifier="wikiref1" href="wiki_content/missing.html"/></resources></manifest>';
+      (fs.readFileSync as jest.Mock).mockReturnValue(manifestXml);
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: {
+          organizations: [{
+            organization: [{
+              item: [{ $: { identifier: 'item1', identifierref: 'wikiref1' }, title: ['Missing Wiki'] }],
+            }],
+          }],
+        },
+      });
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        // wiki file itself does NOT exist → if (fs.existsSync(wikiFile)) false path (line 279)
+        return false;
+      });
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+      (fs.statSync as jest.Mock).mockReturnValue({ isDirectory: () => false, isFile: () => false });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+      // No wiki copy since file is missing
+      const wikiCopy = (fs.copyFileSync as jest.Mock).mock.calls.find(
+        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('wiki_content'),
+      );
+      expect(wikiCopy).toBeUndefined();
+    });
+  });
+
+  describe('remap - processItem file with no extension (ext || .xml fallback)', () => {
+    it('should use .xml as extension fallback when file has no extension', async () => {
+      // refId has no extension → second possibleFile has no ext → path.extname('') = '' → || '.xml' fires (line 305)
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: {
+          organizations: [{
+            organization: [{
+              item: [{ $: { identifier: 'noext', identifierref: 'noext' }, title: ['No Ext File'] }],
+            }],
+          }],
+        },
+      });
+      const noExtFile = path.join(mockInputDir, 'noext');
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        if (p === noExtFile) return true; // second possibleFile exists; first (.xml) does not
+        return false;
+      });
+      (fs.statSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === noExtFile) return { isDirectory: () => false, isFile: () => true };
+        return { isDirectory: () => false, isFile: () => false };
+      });
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+      expect(fs.copyFileSync).toHaveBeenCalled();
+    });
+  });
+
+  describe('remap - processItem file with non-xml extension skips wiki extraction', () => {
+    it('should copy non-xml file without calling extractWikiUrlFromXml (line 309 false path)', async () => {
+      // refId = 'resource.html' → second possibleFile = /input/resource.html → ext = '.html' → if(ext==='.xml') false
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: {
+          organizations: [{
+            organization: [{
+              item: [{ $: { identifier: 'res.html', identifierref: 'res.html' }, title: ['HTML Resource'] }],
+            }],
+          }],
+        },
+      });
+      const htmlFile = path.join(mockInputDir, 'res.html');
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        if (p === htmlFile) return true; // /input/res.html exists; /input/res.html.xml does not
+        return false;
+      });
+      (fs.statSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === htmlFile) return { isDirectory: () => false, isFile: () => true };
+        return { isDirectory: () => false, isFile: () => false };
+      });
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+      expect(fs.copyFileSync).toHaveBeenCalled();
+    });
+  });
+
+  describe('remap - copySpecialDirectories destination does not exist', () => {
+    it('should copy special dir without rmSync when destination does not already exist', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValue('<manifest/>');
+      (parseStringPromise as jest.Mock).mockResolvedValue({
+        manifest: { organizations: [{ organization: [{}] }] },
+      });
+      (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
+      (fs.copyFileSync as jest.Mock).mockReturnValue(undefined);
+      (fs.rmSync as jest.Mock).mockReturnValue(undefined);
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+
+      const srcSettings = path.join(mockInputDir, 'course_settings');
+      const destSettings = path.join(mockOutputDir, 'course_settings');
+
+      (fs.existsSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === mockInputDir || p.includes('imsmanifest.xml') || p === mockOutputDir) return true;
+        if (p === srcSettings) return true;  // source exists
+        if (p === destSettings) return false; // destination does NOT exist → line 380 false path
+        return false;
+      });
+      (fs.statSync as jest.Mock).mockImplementation((p: string) => {
+        if (p === srcSettings) return { isDirectory: () => true };
+        return { isDirectory: () => false, isFile: () => false };
+      });
+
+      const remapper = new IMSCCRemapper({ inputDir: mockInputDir, outputDir: mockOutputDir });
+      await remapper.remap();
+
+      // rmSync should NOT be called for course_settings since dest didn't exist
+      const settingsRm = (fs.rmSync as jest.Mock).mock.calls.find(
+        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('course_settings'),
+      );
+      expect(settingsRm).toBeUndefined();
+    });
+  });
 });
