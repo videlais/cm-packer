@@ -49,7 +49,7 @@ jobs:
         run: npm run build:binaries -- --target ${{ matrix.target }}
 
       - name: Smoke test binary
-        run: node scripts/smoke-test-binary.js release-assets/cm-packer-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
+        run: node scripts/dist/smoke-test-binary.js release-assets/cm-packer-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4

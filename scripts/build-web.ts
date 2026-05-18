@@ -1,12 +1,9 @@
-const esbuild = require('esbuild');
-const fs = require('fs');
-const path = require('path');
+import esbuild from 'esbuild';
 
-async function build() {
+async function build(): Promise<void> {
   try {
     console.log('Building web version...');
 
-    // Build the TypeScript to JavaScript
     await esbuild.build({
       entryPoints: ['src/web/cm-packer.web.ts'],
       bundle: true,
@@ -16,10 +13,9 @@ async function build() {
       minify: true,
       sourcemap: true,
       globalName: 'CMPacker',
-      // Define JSZip and saveAs as external globals loaded via CDN
       banner: {
-        js: '/* CM-Packer Web - Built from TypeScript */'
-      }
+        js: '/* CM-Packer Web - Built from TypeScript */',
+      },
     });
 
     console.log('✓ Built docs/cm-packer.js');
@@ -30,4 +26,4 @@ async function build() {
   }
 }
 
-build();
+void build();

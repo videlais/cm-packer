@@ -1,28 +1,32 @@
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { execFileSync } = require('child_process');
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { execFileSync } from 'child_process';
 
-function assertExists(filePath, message) {
+function assertExists(filePath: string, message?: string): void {
   if (!fs.existsSync(filePath)) {
-    throw new Error(message || `Expected file to exist: ${filePath}`);
+    throw new Error(message ?? `Expected file to exist: ${filePath}`);
   }
 }
 
-function runBinary(binaryPath, args) {
+function runBinary(binaryPath: string, args: string[]): void {
   execFileSync(binaryPath, args, {
     stdio: 'inherit',
     env: process.env,
   });
 }
 
-function main() {
-  const binaryPath = process.argv[2];
-  const fixturePath = process.argv[3] || path.resolve(__dirname, '../examples/sample-course.imscc');
-
-  if (!binaryPath) {
+function main(): void {
+  if (!process.argv[2]) {
     throw new Error('Usage: node scripts/smoke-test-binary.js <binary-path> [fixture-path]');
   }
+
+  // Resolve to absolute paths to prevent path traversal (CodeQL: js/path-injection)
+  const binaryPath = path.resolve(process.argv[2]);
+  const fixturePath = process.argv[3]
+    ? path.resolve(process.argv[3])
+    // __dirname at runtime is scripts/dist/, so ../../examples resolves to examples/ at project root
+    : path.resolve(__dirname, '../../examples/sample-course.imscc');
 
   assertExists(binaryPath, `Binary not found: ${binaryPath}`);
   assertExists(fixturePath, `Fixture not found: ${fixturePath}`);

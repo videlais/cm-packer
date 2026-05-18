@@ -1,10 +1,16 @@
-const fs = require('fs');
-const path = require('path');
-const { spawnSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { spawnSync } from 'child_process';
 
-const packageJson = require('../package.json');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const packageJson = require('../package.json') as { version: string; pkg: { outputPath: string } };
 
-const binaryTargets = {
+interface BinaryTarget {
+  pkgTarget: string;
+  fileName: (versionLabel: string) => string;
+}
+
+const binaryTargets: Record<string, BinaryTarget> = {
   'linux-x64': {
     pkgTarget: 'node22-linux-x64',
     fileName: (versionLabel) => `cm-packer-${versionLabel}-linux-x64`,
@@ -19,8 +25,13 @@ const binaryTargets = {
   },
 };
 
-function parseArgs(argv) {
-  const options = {
+interface BuildOptions {
+  outputDir: string;
+  targets: string[];
+}
+
+function parseArgs(argv: string[]): BuildOptions {
+  const options: BuildOptions = {
     outputDir: packageJson.pkg.outputPath,
     targets: Object.keys(binaryTargets),
   };
@@ -49,30 +60,34 @@ function parseArgs(argv) {
   return options;
 }
 
-function getVersionLabel() {
-  const tag = process.env.RELEASE_TAG || process.env.GITHUB_REF_NAME;
+function getVersionLabel(): string {
+  const tag = process.env.RELEASE_TAG ?? process.env.GITHUB_REF_NAME;
   if (tag) {
     return tag.replace(/[^0-9A-Za-z._-]/g, '-');
   }
-
   return `v${packageJson.version}`;
 }
 
-function ensureBuildOutputExists() {
-  const distCliPath = path.resolve(__dirname, '../dist/cli.js');
+function ensureBuildOutputExists(): string {
+  // __dirname at runtime is scripts/dist/, so ../../dist resolves to the project dist/
+  const distCliPath = path.resolve(__dirname, '../../dist/cli.js');
   if (!fs.existsSync(distCliPath)) {
     throw new Error('dist/cli.js not found. Run "npm run build" before building binaries.');
   }
-
   return distCliPath;
 }
 
-function resolvePkgBin() {
+function resolvePkgBin(): string {
   const pkgBinary = process.platform === 'win32' ? 'pkg.exe' : 'pkg';
-  return path.resolve(__dirname, `../node_modules/.bin/${pkgBinary}`);
+  return path.resolve(__dirname, `../../node_modules/.bin/${pkgBinary}`);
 }
 
-function buildBinary(distCliPath, outputDir, versionLabel, targetName) {
+function buildBinary(
+  distCliPath: string,
+  outputDir: string,
+  versionLabel: string,
+  targetName: string,
+): string {
   const target = binaryTargets[targetName];
   if (!target) {
     throw new Error(`Unsupported binary target: ${targetName}`);
@@ -96,12 +111,14 @@ function buildBinary(distCliPath, outputDir, versionLabel, targetName) {
   return outputPath;
 }
 
-function main() {
+function main(): void {
   const { outputDir, targets } = parseArgs(process.argv.slice(2));
   const versionLabel = getVersionLabel();
   const distCliPath = ensureBuildOutputExists();
 
-  const builtPaths = targets.map((targetName) => buildBinary(distCliPath, outputDir, versionLabel, targetName));
+  const builtPaths = targets.map((targetName) =>
+    buildBinary(distCliPath, outputDir, versionLabel, targetName),
+  );
   console.log(`Built binaries:\n${builtPaths.join('\n')}`);
 }
 
