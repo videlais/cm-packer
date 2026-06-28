@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-06-28
+
+### Dependencies
+
+- `eslint` bumped to `10.6.0`.
+- `@playwright/test` bumped to `1.61.1`.
+- `@typescript-eslint/eslint-plugin` bumped to `8.62.0`.
+- `@typescript-eslint/parser` bumped to `8.62.0`.
+- `@types/node` bumped to `26.0.1`.
+
+## [1.1.1] - 2026-05-18
+
+### Added
+
+- Additional code coverage (up to 1.1.1).
+
+### Dependencies
+
+- Bump @types/node from 25.2.0 to 25.3.3 by @dependabot[bot] in #13
+- Bump @eslint/js from 9.39.2 to 10.0.1 by @dependabot[bot] in #17
+- Bump @types/jszip from 3.4.0 to 3.4.1 by @dependabot[bot] in #14
+- Bump c8 from 10.1.3 to 11.0.0 by @dependabot[bot] in #20
+- Bump esbuild from 0.27.2 to 0.27.3 by @dependabot[bot] in #12
+- Bump nyc from 17.1.0 to 18.0.0 by @dependabot[bot] in #19
+- Bump typescript from 5.9.3 to 6.0.2 by @dependabot[bot] in #26
+- Bump @typescript-eslint/eslint-plugin from 8.58.0 to 8.59.1 by @dependabot[bot] in #34
+- Bump esbuild from 0.27.4 to 0.28.0 by @dependabot[bot] in #32
+- Bump @types/node from 25.5.0 to 25.6.0 by @dependabot[bot] in #30
+- Bump typescript from 6.0.2 to 6.0.3 by @dependabot[bot] in #31
+- Bump eslint from 10.1.0 to 10.3.0 by @dependabot[bot] in #29
+
 ## [1.1.0] - 2026-05-03
 
 ### Added
@@ -34,7 +65,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@types/node` bumped to `25.6.0`.
 - `@typescript-eslint/eslint-plugin` bumped to `8.59.1`.
 
-## [1.0.4] — 2026-02-01
+## [1.0.4] - 2026-02-01
 
 ### Added
 
@@ -61,7 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@typescript-eslint/parser` bumped to `8.51.0`.
 - `@types/node` bumped to `25.0.3`.
 
-## [1.0.0] — 2025-11-25
+## [1.0.0] - 2025-11-25
 
 ### Added
 
@@ -73,3 +104,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - GitHub Actions CI workflow.
 - CodeQL Advanced analysis workflow.
 - Dependabot configuration for automated dependency updates.
+
+[1.1.2]: https://github.com/videlais/cm-packer/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/videlais/cm-packer/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/videlais/cm-packer/compare/v1.0.4...v1.1.0
+[1.0.4]: https://github.com/videlais/cm-packer/compare/v1.0.0...v1.0.4
+[1.0.0]: https://github.com/videlais/cm-packer/releases/tag/v1.0.0
