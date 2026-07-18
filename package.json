@@ -59,7 +59,7 @@
     "outputPath": "release-assets"
   },
   "dependencies": {
-    "adm-zip": "^0.5.18",
+    "adm-zip": "^0.6.0",
     "commander": "^15.0.0",
     "xml2js": "^0.6.2"
   },
