@@ -32,6 +32,18 @@ The GitHub Pages site also exposes the latest native CLI download links at:
 
 - [https://videlais.github.io/cm-packer/downloads.html](https://videlais.github.io/cm-packer/downloads.html)
 
+### GitHub Pages deployment
+
+In the repository's **Settings > Pages > Build and deployment**, set **Source**
+to **GitHub Actions**, not **Deploy from a branch**. The
+[Pages workflow](.github/workflows/pages.yml) builds the web site with
+`npm run build:web` and deploys the generated `docs/` directory on pushes to
+`main` or manual runs. Branch-based publishing would start a second deployment
+pipeline alongside this workflow.
+
+Pages runs share a concurrency group without cancelling an active deployment.
+The workflow pins Ubuntu 24.04 to avoid automatic runner-image migrations.
+
 ### From source
 
 ```bash
