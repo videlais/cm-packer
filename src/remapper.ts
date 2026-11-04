@@ -72,6 +72,10 @@ export class IMSCCRemapper {
         if (!fs.existsSync(this.options.inputDir)) {
           throw new Error(`Input directory not found: ${this.options.inputDir}`);
         }
+
+        if (path.resolve(this.options.inputDir) === path.resolve(this.options.outputDir)) {
+          throw new Error('Input and output directories must be different');
+        }
         
         this.workingDir = this.options.inputDir;
       } else {
@@ -275,7 +279,7 @@ export class IMSCCRemapper {
       // Check for direct wiki content reference in manifest
       const resourceHref = this.getResourceHref(manifestPath, refId);
       if (resourceHref && resourceHref.includes('wiki_content/')) {
-        const wikiFile = path.join(this.workingDir, resourceHref);
+        const wikiFile = this.resolveWorkingPath(resourceHref);
         if (fs.existsSync(wikiFile)) {
           const destFile = this.getUniqueFilePath(currentPath, sanitizedTitle, '.html');
           fs.copyFileSync(wikiFile, destFile);
@@ -287,7 +291,7 @@ export class IMSCCRemapper {
       let copied = false;
 
       // Check for directory
-      const srcDir = path.join(this.workingDir, refId);
+      const srcDir = this.resolveWorkingPath(refId);
       if (fs.existsSync(srcDir) && fs.statSync(srcDir).isDirectory()) {
         const destDir = this.getUniqueFilePath(currentPath, sanitizedTitle, '');
         this.copyDirectory(srcDir, destDir);
@@ -296,8 +300,8 @@ export class IMSCCRemapper {
       } else {
         // Check for files
         const possibleFiles = [
-          path.join(this.workingDir, `${refId}.xml`),
-          path.join(this.workingDir, refId),
+          this.resolveWorkingPath(`${refId}.xml`),
+          srcDir,
         ];
 
         for (const srcFile of possibleFiles) {
@@ -333,6 +337,22 @@ export class IMSCCRemapper {
         this.log(`  [SKIP] Not found: ${refId} (title: ${title})`);
       }
     }
+  }
+
+  private resolveWorkingPath(relativePath: string): string {
+    const root = path.resolve(this.workingDir);
+    const resolvedPath = path.resolve(root, relativePath);
+    const relativeToRoot = path.relative(root, resolvedPath);
+
+    if (
+      relativeToRoot === '..' ||
+      relativeToRoot.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativeToRoot)
+    ) {
+      throw new Error(`Manifest path escapes the input directory: ${relativePath}`);
+    }
+
+    return resolvedPath;
   }
 
   private getResourceHref(manifestPath: string, resourceId: string): string | null {
