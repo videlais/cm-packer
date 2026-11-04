@@ -449,6 +449,82 @@ describe('CLI Integration Tests', () => {
   });
 
   describe('remap command', () => {
+    it('should reject manifest paths that escape the input directory', () => {
+      const inputDir = path.join(TEST_DIR, 'remap-traversal-input');
+      const outputDir = path.join(TEST_DIR, 'remap-traversal-output');
+      const outsideFile = path.join(TEST_DIR, 'outside', 'wiki_content', 'outside-resource.html');
+      fs.mkdirSync(inputDir, { recursive: true });
+      fs.mkdirSync(path.dirname(outsideFile), { recursive: true });
+      fs.writeFileSync(outsideFile, 'outside package');
+      fs.writeFileSync(
+        path.join(inputDir, 'imsmanifest.xml'),
+        `<manifest>
+          <organizations>
+            <organization>
+              <item identifier="item1" identifierref="res1"><title>Outside</title></item>
+            </organization>
+          </organizations>
+          <resources>
+            <resource identifier="res1" type="webcontent" href="../outside/wiki_content/outside-resource.html"/>
+          </resources>
+        </manifest>`,
+      );
+
+      expect(() => {
+        execSync(
+          `node "${CLI_PATH}" remap -i "${inputDir}" -o "${outputDir}"`,
+          { encoding: 'utf-8', stdio: 'pipe' },
+        );
+      }).toThrow(/escapes the input directory/);
+      expect(fs.existsSync(path.join(outputDir, 'Outside.html'))).toBe(false);
+    });
+
+    it('should reject resource identifiers that escape the input directory', () => {
+      const inputDir = path.join(TEST_DIR, 'remap-identifier-traversal-input');
+      const outputDir = path.join(TEST_DIR, 'remap-identifier-traversal-output');
+      fs.mkdirSync(inputDir, { recursive: true });
+      fs.writeFileSync(path.join(TEST_DIR, 'outside-identifier.html'), 'outside package');
+      fs.writeFileSync(
+        path.join(inputDir, 'imsmanifest.xml'),
+        `<manifest>
+          <organizations>
+            <organization>
+              <item identifier="item1" identifierref="../outside-identifier.html"><title>Outside</title></item>
+            </organization>
+          </organizations>
+          <resources/>
+        </manifest>`,
+      );
+
+      expect(() => {
+        execSync(
+          `node "${CLI_PATH}" remap -i "${inputDir}" -o "${outputDir}"`,
+          { encoding: 'utf-8', stdio: 'pipe' },
+        );
+      }).toThrow(/escapes the input directory/);
+      expect(fs.existsSync(path.join(outputDir, 'Outside.html'))).toBe(false);
+    });
+
+    it('should reject remapping a directory into itself without deleting its contents', () => {
+      const inputDir = path.join(TEST_DIR, 'remap-in-place');
+      const settingsDir = path.join(inputDir, 'course_settings');
+      const preservedFile = path.join(settingsDir, 'preserve.txt');
+      fs.mkdirSync(settingsDir, { recursive: true });
+      fs.writeFileSync(preservedFile, 'preserve me');
+      fs.writeFileSync(
+        path.join(inputDir, 'imsmanifest.xml'),
+        '<manifest><organizations><organization/></organizations><resources/></manifest>',
+      );
+
+      expect(() => {
+        execSync(
+          `node "${CLI_PATH}" remap -i "${inputDir}" -o "${inputDir}"`,
+          { encoding: 'utf-8', stdio: 'pipe' },
+        );
+      }).toThrow(/Input and output directories must be different/);
+      expect(fs.readFileSync(preservedFile, 'utf-8')).toBe('preserve me');
+    });
+
     it('should remap unpacked IMSCC directory', () => {
       const unpackDir = path.join(TEST_DIR, 'remap-unpack');
       const remapDir = path.join(TEST_DIR, 'remap-output');
