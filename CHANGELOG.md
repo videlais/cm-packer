@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-11-20
+
+### Added
+
+- Dependabot pull requests can be automatically merged after CI passes for minor and patch updates.
+
+### Changed
+
+- GitHub Pages deployment is handled by the Actions workflow, with serialized deployments on Ubuntu 24.04.
+- Test coverage now uses Jest's V8 provider and enforces the existing coverage thresholds.
+
+### Security
+
+- Remapping rejects manifest paths that escape the input directory and prevents remapping a directory into itself.
+
+### Dependencies
+
+- `adm-zip` bumped to `0.6.1`.
+- `@playwright/test` bumped to `1.64.1`.
+- `@types/node` bumped to `26.6.5`.
+- `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser` bumped to `8.71.2`.
+- `eslint` bumped to `10.12.0`.
+- `esbuild` bumped to `0.28.2`.
+- `jest` aligned to `29.7.0`; `jest-util` added at `29.7.0`.
+- Other build and test dependencies updated.
+
 ## [1.1.2] - 2026-06-28
 
 ### Dependencies
@@ -105,6 +131,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - CodeQL Advanced analysis workflow.
 - Dependabot configuration for automated dependency updates.
 
+[1.1.3]: https://github.com/videlais/cm-packer/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/videlais/cm-packer/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/videlais/cm-packer/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/videlais/cm-packer/compare/v1.0.4...v1.1.0
